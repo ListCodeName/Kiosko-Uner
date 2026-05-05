@@ -106,6 +106,24 @@
                         <span class="nav-label">Estadísticas</span>
                     </button>
 
+                    <button class="nav-item"
+                            data-module="pedidos"
+                            data-title="Pedidos"
+                            data-badge="Kiosko"
+                            data-tooltip="Pedidos">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-label">Pedidos</span>
+                    </button>
+
+                    <button class="nav-item"
+                            data-module="entregas"
+                            data-title="Entregas"
+                            data-badge="Kiosko"
+                            data-tooltip="Entregas">
+                        <span class="nav-icon">🚚</span>
+                        <span class="nav-label">Entregas</span>
+                    </button>
+
                 </div>
             </div>
 
@@ -167,7 +185,17 @@
             </div>
             <span class="header-module-badge" id="headerBadge">Dashboard</span>
             <div class="header-actions">
-                <div class="header-avatar" title="Administrador">A</div>
+                <form action="{{ route('logout') }}" method="POST" style="display:inline">
+                    @csrf
+                    <button type="submit" class="header-avatar" title="Cerrar sesión" style="border:none;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+                </form>
+                @php
+                    $user = Auth::user();
+                    $initials = $user
+                        ? collect(explode(' ', $user->name))->map(fn($w) => mb_strtoupper(mb_substr($w, 0, 1)))->take(2)->join('')
+                        : '?';
+                @endphp
+                <div class="header-avatar" title="{{ $user->name ?? 'Usuario' }}">{{ $initials }}</div>
             </div>
         </header>
 
@@ -208,6 +236,14 @@
 
             <section class="module-section" data-module-content="usuarios">
                 @include('panel.modules.usuarios')
+            </section>
+
+            <section class="module-section" data-module-content="pedidos">
+                @include('panel.modules.pedidos')
+            </section>
+
+            <section class="module-section" data-module-content="entregas">
+                @include('panel.modules.entregas')
             </section>
 
         </main>

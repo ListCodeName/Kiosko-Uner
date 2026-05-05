@@ -1,0 +1,95 @@
+/* ============================================================
+   KIOSKO-UNER | PANEL PROFESOR – CSS adicional
+   Extiende superadmin.css con estilos específicos del profesor
+   ============================================================ */
+
+/* ── GROUPS GRID ───────────────────────────────────────────── */
+.groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px}
+.group-card{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:var(--radius-md);padding:20px;transition:border-color var(--transition),box-shadow var(--transition)}
+.group-card:hover{border-color:var(--border-mid);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.group-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.group-card-title{display:flex;align-items:center;gap:8px}
+.group-card-title h3{font-size:.95rem;font-weight:700;color:var(--text-white);margin:0}
+.group-icon{font-size:1rem}
+.group-card-actions{display:flex;gap:6px}
+.group-card-meta{display:flex;gap:16px;margin-bottom:14px}
+.group-meta-item{font-size:.75rem;color:var(--text-secondary)}
+
+/* ── Members chips ─────────────────────────────────────────── */
+.group-members{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.member-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:20px;font-size:.78rem;color:var(--text-primary);transition:border-color var(--transition)}
+.member-chip:hover{border-color:var(--border-mid)}
+.member-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue-mid),var(--blue-neon));display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff;flex-shrink:0}
+.member-remove{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.75rem;padding:0 2px;transition:color var(--transition);line-height:1}
+.member-remove:hover{color:var(--red)}
+.group-add-btn{width:100%;padding:8px;background:none;border:1px dashed var(--border-dim);border-radius:var(--radius-sm);color:var(--text-muted);font-family:inherit;font-size:.8rem;cursor:pointer;transition:all var(--transition)}
+.group-add-btn:hover{border-color:var(--blue-neon);color:var(--blue-light);background:rgba(45,140,255,.05)}
+
+/* ── Member select list (modal) ────────────────────────────── */
+.member-select-list{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;margin-bottom:16px;padding:4px 0}
+.member-select-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;color:var(--text-primary);transition:background var(--transition)}
+.member-select-item:hover{background:var(--bg-hover)}
+.member-select-item input[type="checkbox"]{accent-color:var(--blue-neon)}
+
+/* ── Performance cards ─────────────────────────────────────── */
+.perf-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.perf-title{font-size:1.1rem;font-weight:700;color:var(--text-white)}
+.perf-filters{display:flex;gap:8px;align-items:center}
+
+.perf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.perf-card{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:var(--radius-md);padding:20px;transition:border-color var(--transition),box-shadow var(--transition)}
+.perf-card:hover{border-color:var(--border-mid);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.perf-card-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.perf-card-name{font-size:.92rem;font-weight:600;color:var(--text-white)}
+.perf-card-sub{font-size:.72rem;color:var(--text-muted)}
+
+.perf-bar-group{display:flex;flex-direction:column;gap:10px}
+.perf-bar-row{display:flex;flex-direction:column;gap:4px}
+.perf-bar-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-secondary)}
+.perf-bar-track{height:6px;background:var(--bg-card);border-radius:3px;overflow:hidden}
+.perf-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.perf-bar-fill.blue{background:linear-gradient(90deg,var(--blue-mid),var(--blue-neon))}
+.perf-bar-fill.green{background:linear-gradient(90deg,#16a34a,#22c55e)}
+.perf-bar-fill.yellow{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.perf-bar-fill.purple{background:linear-gradient(90deg,#7c3aed,#a855f7)}
+.perf-bar-fill.red{background:linear-gradient(90deg,#dc2626,#f04040)}
+
+.perf-score{text-align:center;padding-top:14px;border-top:1px solid var(--border-dim);margin-top:14px}
+.perf-score-value{font-size:1.6rem;font-weight:800;color:var(--text-white)}
+.perf-score-label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px}
+
+/* ── Pie chart (CSS) ───────────────────────────────────────── */
+.pie-chart-container{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.pie-chart{position:relative;width:160px;height:160px;border-radius:50%;flex-shrink:0}
+.pie-chart-center{position:absolute;inset:30px;border-radius:50%;background:var(--bg-surface);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pie-chart-center-value{font-size:1.2rem;font-weight:800;color:var(--text-white)}
+.pie-chart-center-label{font-size:.65rem;color:var(--text-muted)}
+.pie-chart-legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-primary)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-value{margin-left:auto;font-weight:600;color:var(--text-white);font-size:.82rem}
+
+/* ── Economic section ──────────────────────────────────────── */
+.econ-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:20px}
+.econ-card{background:var(--bg-surface);border:1px solid var(--border-dim);border-radius:var(--radius-md);padding:24px;transition:border-color var(--transition)}
+.econ-card:hover{border-color:var(--border-mid)}
+.econ-card-title{font-size:.95rem;font-weight:700;color:var(--text-white);margin-bottom:4px}
+.econ-card-sub{font-size:.72rem;color:var(--text-muted);margin-bottom:18px}
+
+.econ-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border-dim)}
+.econ-summary-item{display:flex;flex-direction:column;gap:2px}
+.econ-summary-label{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.econ-summary-value{font-size:1.1rem;font-weight:700}
+.econ-summary-value.positive{color:var(--green)}
+.econ-summary-value.negative{color:var(--red)}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media(max-width:768px){
+    .groups-grid{grid-template-columns:1fr}
+    .perf-grid{grid-template-columns:1fr}
+    .econ-grid{grid-template-columns:1fr}
+    .pie-chart-container{flex-direction:column;align-items:flex-start}
+}
+@media(max-width:480px){
+    .perf-header{flex-direction:column;align-items:flex-start}
+}

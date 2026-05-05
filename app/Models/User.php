@@ -20,7 +20,9 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
+        'role',
         'password',
     ];
 
@@ -45,5 +47,47 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /* ── Relationships ─────────────────────────────────────── */
+
+    public function personnel()
+    {
+        return $this->hasOne(Personnel::class);
+    }
+
+    /* ── Role Helpers ──────────────────────────────────────── */
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
+    }
+
+    public function isAlumno(): bool
+    {
+        return $this->role === 'alumno';
+    }
+
+    public function isProfesor(): bool
+    {
+        return $this->role === 'profesor';
+    }
+
+    public function isDirectivo(): bool
+    {
+        return $this->role === 'directivo';
+    }
+
+    /**
+     * Get the panel route for this user's role.
+     */
+    public function panelRoute(): string
+    {
+        return match ($this->role) {
+            'superadmin' => '/superadmin',
+            'profesor'   => '/profesor',
+            'directivo'  => '/directivo',
+            default      => '/panel',
+        };
     }
 }
