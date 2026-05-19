@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Compra;
+use App\Models\CompraItem;
 use App\Models\Personnel;
+use App\Models\Proveedor;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -249,5 +252,203 @@ class SuperAdminController extends Controller
                 'message' => 'Error al eliminar: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /* ══════════════════════════════════════════════════
+     *  PROVEEDORES
+     * ══════════════════════════════════════════════════ */
+
+    /**
+     * Get all proveedores as JSON.
+     */
+    public function getProveedores()
+    {
+        $proveedores = Proveedor::withTrashed()
+            ->orderByRaw('deleted_at IS NOT NULL')
+            ->orderBy('nombre')
+            ->get();
+
+        return response()->json([
+            'proveedores' => $proveedores,
+            'total'       => $proveedores->count(),
+        ]);
+    }
+
+    /**
+     * Create a new proveedor.
+     */
+    public function storeProveedor(Request $request)
+    {
+        $validated = $request->validate([
+            'nombre'    => 'required|string|max:150',
+            'contacto'  => 'nullable|string|max:100',
+            'telefono'  => 'nullable|string|max:30',
+            'correo'    => 'nullable|email|max:150',
+            'direccion' => 'nullable|string|max:255',
+        ]);
+
+        $proveedor = Proveedor::create($validated);
+
+        return response()->json([
+            'success'   => true,
+            'message'   => 'Proveedor creado exitosamente.',
+            'proveedor' => $proveedor,
+        ], 201);
+    }
+
+    /**
+     * Update an existing proveedor.
+     */
+    public function updateProveedor(Request $request, $id)
+    {
+        $proveedor = Proveedor::findOrFail($id);
+
+        $validated = $request->validate([
+            'nombre'    => 'required|string|max:150',
+            'contacto'  => 'nullable|string|max:100',
+            'telefono'  => 'nullable|string|max:30',
+            'correo'    => 'nullable|email|max:150',
+            'direccion' => 'nullable|string|max:255',
+        ]);
+
+        $proveedor->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Proveedor actualizado correctamente.',
+        ]);
+    }
+
+    /**
+     * Delete a proveedor.
+     */
+    public function destroyProveedor($id)
+    {
+        $proveedor = Proveedor::findOrFail($id);
+        $proveedor->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Proveedor eliminado correctamente.',
+        ]);
+    }
+
+    /* ══════════════════════════════════════════════════
+     *  COMPRAS
+     * ══════════════════════════════════════════════════ */
+
+    /**
+     * Get all compras with their items.
+     */
+    public function getCompras()
+    {
+        $compras = Compra::with('items')
+            ->orderBy('fecha', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($c) {
+                return [
+                    'id'            => $c->id,
+                    'fecha'         => $c->fecha->format('d/m/Y'),
+                    'fecha_raw'     => $c->fecha->format('Y-m-d'),
+                    'total'         => (float) $c->total,
+                    'observaciones' => $c->observaciones,
+                    'items'         => $c->items->map(fn($i) => [
+                        'id'              => $i->id,
+                        'producto_nombre' => $i->producto_nombre,
+                        'cantidad'        => (float) $i->cantidad,
+                        'precio_unitario' => (float) $i->precio_unitario,
+                        'subtotal'        => round((float)$i->cantidad * (float)$i->precio_unitario, 2),
+                    ]),
+                ];
+            });
+
+        return response()->json([
+            'compras' => $compras,
+            'total'   => $compras->count(),
+        ]);
+    }
+
+    /**
+     * Store a new compra with its items.
+     */
+    public function storeCompra(Request $request)
+    {
+        $validated = $request->validate([
+            'fecha'                     => 'required|date',
+            'observaciones'             => 'nullable|string|max:500',
+            'items'                     => 'required|array|min:1',
+            'items.*.producto_nombre'   => 'required|string|max:150',
+            'items.*.cantidad'          => 'required|numeric|min:0.01',
+            'items.*.precio_unitario'   => 'required|numeric|min:0',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Calcular total
+            $total = collect($validated['items'])->sum(
+                fn($i) => $i['cantidad'] * $i['precio_unitario']
+            );
+
+            $compra = Compra::create([
+                'fecha'          => $validated['fecha'],
+                'total'          => $total,
+                'observaciones'  => $validated['observaciones'] ?? null,
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                CompraItem::create([
+                    'compra_id'        => $compra->id,
+                    'producto_nombre'  => $item['producto_nombre'],
+                    'cantidad'         => $item['cantidad'],
+                    'precio_unitario'  => $item['precio_unitario'],
+                ]);
+            }
+
+            DB::commit();
+
+            $compra->load('items');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Compra registrada exitosamente.',
+                'compra'  => [
+                    'id'            => $compra->id,
+                    'fecha'         => $compra->fecha->format('d/m/Y'),
+                    'fecha_raw'     => $compra->fecha->format('Y-m-d'),
+                    'total'         => (float) $compra->total,
+                    'observaciones' => $compra->observaciones,
+                    'items'         => $compra->items->map(fn($i) => [
+                        'id'              => $i->id,
+                        'producto_nombre' => $i->producto_nombre,
+                        'cantidad'        => (float) $i->cantidad,
+                        'precio_unitario' => (float) $i->precio_unitario,
+                        'subtotal'        => round((float)$i->cantidad * (float)$i->precio_unitario, 2),
+                    ]),
+                ],
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar la compra: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a compra (and cascade its items).
+     */
+    public function destroyCompra($id)
+    {
+        $compra = Compra::findOrFail($id);
+        $compra->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Compra eliminada correctamente.',
+        ]);
     }
 }

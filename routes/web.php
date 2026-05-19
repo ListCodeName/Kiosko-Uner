@@ -82,6 +82,30 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->group(func
     Route::put('/personnel/{id}/role',       [SuperAdminController::class, 'updateRole']);
     Route::put('/personnel/{id}/password',   [SuperAdminController::class, 'updatePassword']);
     Route::delete('/personnel/{id}',         [SuperAdminController::class, 'destroyPersonnel']);
+
+});
+
+/*
+|--------------------------------------------------------------------------
+| Proveedores – Lectura y escritura (cualquier usuario autenticado)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('superadmin')->group(function () {
+    Route::get('/proveedores',         [SuperAdminController::class, 'getProveedores']);
+    Route::post('/proveedores',        [SuperAdminController::class, 'storeProveedor']);
+    Route::put('/proveedores/{id}',    [SuperAdminController::class, 'updateProveedor']);
+    Route::delete('/proveedores/{id}', [SuperAdminController::class, 'destroyProveedor']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Compras – Lectura y escritura (cualquier usuario autenticado)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->prefix('api')->group(function () {
+    Route::get('/compras',         [SuperAdminController::class, 'getCompras']);
+    Route::post('/compras',        [SuperAdminController::class, 'storeCompra']);
+    Route::delete('/compras/{id}', [SuperAdminController::class, 'destroyCompra']);
 });
 
 /*

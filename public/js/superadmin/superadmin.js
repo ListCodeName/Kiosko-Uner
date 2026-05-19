@@ -41,6 +41,7 @@
         localStorage.setItem('sa-active-module', id);
         if (window.innerWidth <= 768) closeSidebar();
         if (id === 'personal') loadPersonnel();
+        if (id === 'proveedores') loadProveedores();
     }
     navItems.forEach(i => i.addEventListener('click', () => activateModule(i.dataset.module)));
     const saved = localStorage.getItem('sa-active-module');
@@ -261,5 +262,130 @@
 
     // ── Initial load ──────────────────────────────────────────
     loadPersonnel();
+
+    // ══════════════════════════════════════════════════════════
+    // PROVEEDORES
+    // ══════════════════════════════════════════════════════════
+
+    let proveedoresData = [];
+
+    // Load
+    async function loadProveedores() {
+        try {
+            const data = await api('/superadmin/proveedores');
+            proveedoresData = data.proveedores;
+            renderProveedoresTable(proveedoresData);
+        } catch (e) { showToast('Error al cargar proveedores', 'error'); }
+    }
+
+    // Render table
+    function renderProveedoresTable(data) {
+        const tbody = document.getElementById('proveedoresBody');
+        const empty = document.getElementById('provTableEmpty');
+        if (!tbody) return;
+        if (!data.length) {
+            tbody.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+        tbody.innerHTML = data.map(p => `
+            <tr data-id="${p.id}">
+                <td><strong>${p.nombre}</strong></td>
+                <td>${p.contacto || '—'}</td>
+                <td>${p.telefono || '—'}</td>
+                <td>${p.correo || '—'}</td>
+                <td>${p.direccion || '—'}</td>
+                <td class="actions-cell">
+                    <button class="action-btn" title="Editar" onclick="SA.editProveedor(${p.id})">✏️</button>
+                    <button class="action-btn danger" title="Eliminar" onclick="SA.deleteProveedor(${p.id})">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Search
+    const provSearchInput = document.getElementById('provSearchInput');
+    function applyProvFilters() {
+        const q = (provSearchInput?.value || '').toLowerCase();
+        const filtered = proveedoresData.filter(p =>
+            !q ||
+            p.nombre.toLowerCase().includes(q) ||
+            (p.contacto || '').toLowerCase().includes(q) ||
+            (p.correo || '').toLowerCase().includes(q)
+        );
+        renderProveedoresTable(filtered);
+    }
+    if (provSearchInput) provSearchInput.addEventListener('input', applyProvFilters);
+
+    // ── CREATE
+    document.getElementById('btnNewProveedor')?.addEventListener('click', () => {
+        document.getElementById('provCreateForm')?.reset();
+        openModal('provCreateModal');
+    });
+
+    document.getElementById('provCreateForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = Object.fromEntries(new FormData(e.target).entries());
+        try {
+            const data = await api('/superadmin/proveedores', 'POST', body);
+            showToast(data.message);
+            closeModal('provCreateModal');
+            loadProveedores();
+        } catch (err) {
+            const msg = err.message || Object.values(err.errors || {}).flat().join(', ') || 'Error al crear';
+            showToast(msg, 'error');
+        }
+    });
+
+    // ── EDIT
+    SA.editProveedor = function (id) {
+        const p = proveedoresData.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('prov-edit-id').value       = p.id;
+        document.getElementById('prov-edit-nombre').value   = p.nombre;
+        document.getElementById('prov-edit-contacto').value = p.contacto || '';
+        document.getElementById('prov-edit-telefono').value = p.telefono || '';
+        document.getElementById('prov-edit-correo').value   = p.correo || '';
+        document.getElementById('prov-edit-direccion').value = p.direccion || '';
+        openModal('provEditModal');
+    };
+
+    document.getElementById('provEditForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const id = fd.get('id');
+        const body = Object.fromEntries(fd.entries());
+        delete body.id;
+        try {
+            const data = await api(`/superadmin/proveedores/${id}`, 'PUT', body);
+            showToast(data.message);
+            closeModal('provEditModal');
+            loadProveedores();
+        } catch (err) {
+            const msg = err.message || Object.values(err.errors || {}).flat().join(', ') || 'Error al actualizar';
+            showToast(msg, 'error');
+        }
+    });
+
+    // ── DELETE
+    SA.deleteProveedor = function (id) {
+        const p = proveedoresData.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('prov-del-id').value = p.id;
+        document.getElementById('prov-del-name').textContent = p.nombre;
+        openModal('provDeleteModal');
+    };
+
+    document.getElementById('provDeleteForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = new FormData(e.target).get('id');
+        try {
+            const data = await api(`/superadmin/proveedores/${id}`, 'DELETE');
+            showToast(data.message);
+            closeModal('provDeleteModal');
+            loadProveedores();
+        } catch (err) { showToast(err.message || 'Error', 'error'); }
+    });
 
 })();

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control – Kiosko UNER</title>
     <meta name="description" content="Panel de administración del sistema Kiosko UNER.">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/panel/panel.css') }}">
@@ -124,7 +125,14 @@
                         <span class="nav-label">Entregas</span>
                     </button>
 
-                </div>
+                    <button class="nav-item"
+                            data-module="proveedores"
+                            data-title="Proveedores"
+                            data-badge="Kiosko"
+                            data-tooltip="Proveedores">
+                        <span class="nav-icon">🏭</span>
+                        <span class="nav-label">Proveedores</span>
+                    </button>
             </div>
 
             <div class="nav-divider"></div>
@@ -244,6 +252,10 @@
 
             <section class="module-section" data-module-content="entregas">
                 @include('panel.modules.entregas')
+            </section>
+
+            <section class="module-section" data-module-content="proveedores">
+                @include('panel.modules.proveedores')
             </section>
 
         </main>
