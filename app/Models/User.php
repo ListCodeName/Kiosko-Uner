@@ -56,6 +56,16 @@ class User extends Authenticatable
         return $this->hasOne(Personnel::class);
     }
 
+    public function groups()
+    {
+        return $this->hasMany(Group::class, 'professor_id');
+    }
+
+    public function studentGroups()
+    {
+        return $this->belongsToMany(Group::class, 'group_user', 'user_id', 'group_id');
+    }
+
     /* ── Role Helpers ──────────────────────────────────────── */
 
     public function isSuperAdmin(): bool

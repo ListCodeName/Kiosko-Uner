@@ -93,3 +93,509 @@
 @media(max-width:480px){
     .perf-header{flex-direction:column;align-items:flex-start}
 }
+
+/* ═══════════════════════════════════════════════════════════
+   DESEMPEÑO INDIVIDUAL – Cards premium
+   ═══════════════════════════════════════════════════════════ */
+
+/* Badge de total de alumnos en el header */
+.perf-ind-total-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 14px;background:rgba(45,140,255,.08);
+    border:1px solid rgba(45,140,255,.2);border-radius:20px;
+    font-size:.8rem;font-weight:600;color:var(--blue-light);
+}
+
+/* ── Card rediseñada ────────────────────────────────────────── */
+.perf-card{
+    background:var(--bg-surface);border:1px solid var(--border-dim);
+    border-radius:var(--radius-md);overflow:hidden;
+    transition:border-color var(--transition),box-shadow var(--transition),transform var(--transition);
+    display:flex;flex-direction:column;position:relative;
+}
+.perf-card:hover{
+    border-color:var(--border-mid);
+    box-shadow:0 6px 28px rgba(0,0,0,.4);
+    transform:translateY(-2px);
+}
+
+/* Acento de color superior */
+.perf-card-accent{
+    height:4px;width:100%;
+    background:linear-gradient(90deg,var(--blue-mid),var(--blue-neon));
+}
+.perf-card-accent.green{background:linear-gradient(90deg,#16a34a,#22c55e)}
+.perf-card-accent.yellow{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.perf-card-accent.purple{background:linear-gradient(90deg,#7c3aed,#a855f7)}
+.perf-card-accent.red{background:linear-gradient(90deg,#dc2626,#f04040)}
+
+/* Header de la card */
+.perf-card-header{
+    display:flex;align-items:center;gap:14px;
+    padding:18px 18px 12px;
+}
+.perf-card-avatar{
+    width:46px;height:46px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--blue-mid),var(--blue-neon));
+    display:flex;align-items:center;justify-content:center;
+    font-size:.85rem;font-weight:800;color:#fff;
+    box-shadow:0 0 14px rgba(45,140,255,.3);
+    border:2px solid rgba(45,140,255,.2);
+}
+.perf-card-info{flex:1;min-width:0}
+.perf-card-name{
+    font-size:.95rem;font-weight:700;color:var(--text-white);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.perf-card-groups{
+    display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;
+}
+.perf-card-group-chip{
+    display:inline-flex;align-items:center;
+    padding:2px 8px;border-radius:10px;
+    font-size:.65rem;font-weight:600;
+    background:rgba(45,140,255,.1);border:1px solid rgba(45,140,255,.2);
+    color:var(--blue-light);white-space:nowrap;
+}
+
+/* Cuerpo de la card con métricas */
+.perf-card-body{
+    padding:0 18px 14px;display:flex;flex-direction:column;gap:14px;
+}
+
+/* Fila de métrica */
+.perf-metric-row{
+    display:flex;flex-direction:column;gap:6px;
+}
+.perf-metric-header{
+    display:flex;align-items:center;justify-content:space-between;
+}
+.perf-metric-left{
+    display:flex;align-items:center;gap:7px;
+}
+.perf-metric-icon{
+    width:26px;height:26px;border-radius:var(--radius-sm);
+    display:flex;align-items:center;justify-content:center;
+    font-size:.85rem;flex-shrink:0;
+}
+.perf-metric-icon.blue  {background:rgba(45,140,255,.12);border:1px solid rgba(45,140,255,.2)}
+.perf-metric-icon.green {background:var(--green-bg);border:1px solid var(--green-border)}
+.perf-metric-label{
+    font-size:.78rem;font-weight:600;color:var(--text-secondary);
+    display:flex;align-items:center;gap:6px;
+}
+.perf-metric-value{
+    font-size:.82rem;font-weight:700;color:var(--text-white);
+}
+.perf-metric-bar-wrap{position:relative}
+.perf-metric-bar-track{
+    height:8px;background:var(--bg-card);border-radius:4px;overflow:hidden;
+    border:1px solid var(--border-dim);
+}
+.perf-metric-bar-fill{
+    height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1);
+}
+.perf-metric-bar-fill.blue{
+    background:linear-gradient(90deg,var(--blue-mid),var(--blue-neon));
+    box-shadow:0 0 6px rgba(45,140,255,.4);
+}
+.perf-metric-bar-fill.green{
+    background:linear-gradient(90deg,#16a34a,#22c55e);
+    box-shadow:0 0 6px rgba(34,197,94,.3);
+}
+/* Clicable */
+.perf-metric-bar-track[data-action]{cursor:pointer}
+.perf-metric-bar-track[data-action]:hover .perf-metric-bar-fill{filter:brightness(1.2)}
+
+/* Botón de detalle inline */
+.perf-detail-btn{
+    width:22px;height:22px;border-radius:50%;background:none;
+    border:1px solid var(--border-dim);color:var(--text-muted);
+    cursor:pointer;font-size:.62rem;display:inline-flex;align-items:center;
+    justify-content:center;transition:all var(--transition);padding:0;flex-shrink:0;
+    line-height:1;
+}
+.perf-detail-btn:hover{
+    border-color:var(--blue-neon);color:var(--blue-neon);
+    background:rgba(45,140,255,.1);box-shadow:0 0 6px rgba(45,140,255,.25);
+    transform:scale(1.2);
+}
+
+/* Separador + score final */
+.perf-card-score{
+    margin:0 18px 18px;padding:12px 14px;
+    background:var(--bg-card);border:1px solid var(--border-dim);
+    border-radius:var(--radius-sm);
+    display:flex;align-items:center;justify-content:space-between;
+}
+.perf-score-left{display:flex;flex-direction:column;gap:2px}
+.perf-score-label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px}
+.perf-score-value{font-size:1.5rem;font-weight:800;color:var(--text-white);line-height:1.1}
+.perf-score-sub{font-size:.72rem;color:var(--text-muted)}
+.perf-score-ring{
+    width:44px;height:44px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;
+    border:3px solid var(--border-dim);
+    transition:border-color var(--transition);
+}
+.perf-score-ring.high  {border-color:var(--green);color:var(--green);background:var(--green-bg)}
+.perf-score-ring.mid   {border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
+.perf-score-ring.low   {border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.perf-score-ring.none  {border-color:var(--border-mid);color:var(--text-muted)}
+
+/* Estado vacío */
+.perf-ind-empty{
+    grid-column:1/-1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:60px 24px;text-align:center;
+    color:var(--text-secondary);
+}
+
+/* Modal más ancho para los detalles */
+.modal.modal-lg{max-width:680px}
+
+/* ── Modal Asistencia: Calendario mensual ─────────────────── */
+.att-month-nav{
+    display:flex;align-items:center;justify-content:center;gap:12px;
+    margin-bottom:14px;
+}
+
+.att-month-label{
+    font-size:.95rem;font-weight:700;color:var(--text-white);
+    min-width:180px;text-align:center;text-transform:capitalize;
+}
+.att-month-stats{
+    display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+    margin-bottom:16px;
+}
+.att-cal-header{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:4px;
+    margin-bottom:4px;
+}
+.att-cal-header span{
+    text-align:center;font-size:.65rem;font-weight:700;
+    color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;
+    padding:3px 0;
+}
+.att-calendar-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:4px;
+}
+.att-cal-day{
+    aspect-ratio:1;border-radius:var(--radius-sm);display:flex;
+    flex-direction:column;align-items:center;justify-content:center;
+    font-size:.75rem;font-weight:600;cursor:default;
+    transition:transform .12s ease;position:relative;
+}
+.att-cal-day:not(.att-cal-offmonth):hover{transform:scale(1.08)}
+.att-cal-day-num{font-size:.78rem;font-weight:700;line-height:1}
+.att-cal-day-dot{width:5px;height:5px;border-radius:50%;margin-top:3px}
+
+/* Estados del día */
+.att-cal-day.att-cal-present{
+    background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);
+}
+.att-cal-day.att-cal-absent{
+    background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);
+}
+.att-cal-day.att-cal-unmarked{
+    background:var(--bg-card);border:1px solid var(--border-dim);color:var(--text-secondary);
+}
+.att-cal-day.att-cal-offmonth{
+    background:transparent;border:1px solid transparent;color:var(--text-muted);opacity:.3;
+}
+.att-cal-day.att-cal-today{
+    box-shadow:0 0 0 2px var(--blue-neon);
+}
+.att-cal-day.att-cal-present .att-cal-day-dot{background:var(--green)}
+.att-cal-day.att-cal-absent  .att-cal-day-dot{background:var(--red)}
+.att-cal-day.att-cal-unmarked .att-cal-day-dot{background:var(--border-mid)}
+
+/* Leyenda */
+.att-legend{
+    display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+    margin-top:14px;padding-top:12px;border-top:1px solid var(--border-dim);
+}
+.att-legend-item{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:.72rem;color:var(--text-secondary);
+}
+.att-legend-item.present{color:var(--green)}
+.att-legend-item.absent{color:var(--red)}
+
+/* ── Modal Actividad: log de acciones ─────────────────────── */
+.act-type-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;
+    margin-bottom:4px;
+}
+.act-type-card{
+    background:var(--bg-card);border:1px solid var(--border-dim);
+    border-radius:var(--radius-md);padding:14px 12px;text-align:center;
+    transition:border-color var(--transition);
+}
+.act-type-card:hover{border-color:var(--border-mid)}
+.act-type-icon{font-size:1.4rem;margin-bottom:4px}
+.act-type-count{font-size:1.4rem;font-weight:800;color:var(--text-white);line-height:1.1}
+.act-type-label{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+
+/* Colores por tipo */
+.act-type-card.act-login  {border-color:rgba(45,140,255,.25);background:rgba(45,140,255,.05)}
+.act-type-card.act-login .act-type-count{color:var(--blue-light)}
+.act-type-card.act-insert {border-color:var(--green-border);background:var(--green-bg)}
+.act-type-card.act-insert .act-type-count{color:var(--green)}
+.act-type-card.act-update {border-color:var(--yellow-border);background:var(--yellow-bg)}
+.act-type-card.act-update .act-type-count{color:var(--yellow)}
+.act-type-card.act-delete {border-color:var(--red-border);background:var(--red-bg)}
+.act-type-card.act-delete .act-type-count{color:var(--red)}
+.act-type-card.act-sale   {border-color:var(--purple-border);background:var(--purple-bg)}
+.act-type-card.act-sale   .act-type-count{color:var(--purple)}
+
+/* Log list */
+.activity-log-list{
+    display:flex;flex-direction:column;gap:4px;
+    max-height:240px;overflow-y:auto;
+    padding:2px 0;
+}
+.activity-log-list::-webkit-scrollbar{width:4px}
+.activity-log-list::-webkit-scrollbar-thumb{background:var(--border-dim);border-radius:2px}
+
+.activity-log-item{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 12px;border-radius:var(--radius-sm);
+    font-size:.82rem;color:var(--text-primary);
+    background:var(--bg-card);border:1px solid transparent;
+    transition:border-color var(--transition);
+}
+.activity-log-item:hover{border-color:var(--border-dim)}
+.act-log-dot{
+    width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.act-log-dot.login {background:var(--blue-neon)}
+.act-log-dot.insert{background:var(--green)}
+.act-log-dot.update{background:var(--yellow)}
+.act-log-dot.delete{background:var(--red)}
+.act-log-dot.sale  {background:var(--purple)}
+.act-log-module-chip{
+    display:inline-block;padding:2px 6px;border-radius:4px;
+    background:var(--bg-surface);border:1px solid var(--border-dim);
+    font-size:.65rem;font-weight:700;color:var(--text-secondary);
+    text-transform:uppercase;letter-spacing:.5px;margin-right:6px;
+}
+.act-log-desc{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-log-time{font-size:.7rem;color:var(--text-muted);flex-shrink:0}
+
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO ASISTENCIA
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Controls bar ───────────────────────────────────────────── */
+.asist-controls{
+    display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;
+    background:var(--bg-surface);border:1px solid var(--border-dim);
+    border-radius:var(--radius-md);padding:18px 20px;
+}
+.asist-group-selector{display:flex;flex-direction:column;gap:6px;flex:1;min-width:200px}
+.asist-select{
+    padding:10px 14px;background:var(--bg-input);border:1px solid var(--border-dim);
+    border-radius:var(--radius-sm);color:var(--text-white);font-family:inherit;
+    font-size:.88rem;outline:none;cursor:pointer;
+    transition:border-color var(--transition),box-shadow var(--transition);
+}
+.asist-select:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(45,140,255,.12)}
+
+/* ── Week navigator ─────────────────────────────────────────── */
+.week-nav{
+    display:flex;align-items:center;gap:8px;
+    background:var(--bg-card);border:1px solid var(--border-dim);
+    border-radius:var(--radius-md);padding:6px 8px;
+    flex-shrink:0;
+}
+.week-nav-btn{
+    width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+    background:none;border:1px solid var(--border-dim);border-radius:var(--radius-sm);
+    color:var(--text-secondary);cursor:pointer;transition:all var(--transition);flex-shrink:0;
+}
+.week-nav-btn:hover{background:var(--bg-hover);color:var(--text-white);border-color:var(--border-mid)}
+.week-nav-label{
+    display:flex;flex-direction:column;align-items:center;min-width:180px;
+    text-align:center;padding:0 6px;
+}
+.week-nav-range{font-size:.9rem;font-weight:600;color:var(--text-white);white-space:nowrap}
+.week-nav-sub{font-size:.7rem;color:var(--text-muted);margin-top:1px}
+.week-nav-today{
+    padding:6px 14px;background:rgba(45,140,255,.1);border:1px solid rgba(45,140,255,.25);
+    border-radius:var(--radius-sm);color:var(--blue-light);font-family:inherit;
+    font-size:.78rem;font-weight:600;cursor:pointer;transition:all var(--transition);
+    white-space:nowrap;
+}
+.week-nav-today:hover{background:rgba(45,140,255,.2);border-color:var(--blue-neon);color:#fff}
+.week-nav-today.is-current{background:rgba(45,140,255,.2);border-color:var(--blue-neon)}
+
+/* ── Stats pills ────────────────────────────────────────────── */
+.asist-week-stats{
+    display:flex;gap:10px;flex-wrap:wrap;
+    animation:fadeSlideIn .25s ease;
+}
+.asist-stat-pill{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:7px 14px;background:var(--bg-surface);border:1px solid var(--border-dim);
+    border-radius:20px;font-size:.8rem;color:var(--text-secondary);
+    transition:border-color var(--transition);
+}
+.asist-stat-icon{font-size:.85rem}
+.asist-stat-pill.present{border-color:var(--green-border);color:var(--green);background:var(--green-bg)}
+.asist-stat-pill.absent{border-color:var(--red-border);color:var(--red);background:var(--red-bg)}
+.asist-stat-pill.unmarked{border-color:var(--border-mid);color:var(--text-secondary)}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Table wrapper ──────────────────────────────────────────── */
+.asist-table-wrapper{
+    border:1px solid var(--border-dim);border-radius:var(--radius-md);
+    background:var(--bg-surface);overflow:hidden;min-height:200px;
+}
+.asist-empty,.asist-loading{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:12px;padding:64px 24px;color:var(--text-secondary);text-align:center;
+}
+.asist-empty-icon{font-size:2.8rem;line-height:1;filter:grayscale(0.3)}
+.asist-empty-title{font-size:1rem;font-weight:600;color:var(--text-white)}
+.asist-empty-sub{font-size:.82rem;color:var(--text-muted);max-width:280px}
+.asist-spinner{
+    width:30px;height:30px;border:3px solid var(--border-dim);
+    border-top-color:var(--blue-neon);border-radius:50%;
+    animation:spin .75s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Attendance table ───────────────────────────────────────── */
+#asistTableContainer{overflow-x:auto}
+.attendance-table{
+    width:100%;border-collapse:collapse;white-space:nowrap;min-width:600px;
+}
+
+/* ─── Header principal ─── */
+.attendance-table thead tr:first-child th{
+    background:var(--bg-card);border-bottom:1px solid var(--border-dim);
+    padding:0;
+}
+.att-th-student{
+    padding:12px 18px;text-align:left;font-size:.72rem;font-weight:700;
+    color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;
+    min-width:180px;position:sticky;left:0;background:var(--bg-card);z-index:2;
+    border-right:1px solid var(--border-dim);
+}
+.att-th-day{
+    padding:12px 8px;text-align:center;min-width:110px;
+}
+.att-th-day-name{
+    display:block;font-size:.8rem;font-weight:700;color:var(--text-white);
+    text-transform:capitalize;
+}
+.att-th-day-date{
+    display:block;font-size:.7rem;color:var(--text-muted);margin-top:2px;
+}
+.att-th-day.is-today .att-th-day-name{color:var(--blue-neon)}
+.att-th-day.is-today .att-th-day-date{color:var(--blue-light)}
+.att-th-day.is-today{border-bottom:2px solid var(--blue-neon)}
+
+/* ─── Header secundario (resumen por día) ─── */
+.attendance-table thead tr:last-child th{
+    background:var(--bg-surface);border-bottom:2px solid var(--border-mid);
+    padding:6px 8px;text-align:center;font-size:.7rem;font-weight:500;
+}
+.att-th-summary-student{
+    position:sticky;left:0;background:var(--bg-surface);z-index:2;
+    border-right:1px solid var(--border-dim);border-bottom:2px solid var(--border-mid);
+    padding:6px 18px;text-align:left;color:var(--text-muted);font-size:.7rem;
+}
+.day-summary-badge{
+    display:inline-flex;align-items:center;gap:5px;padding:3px 8px;
+    border-radius:10px;font-size:.7rem;font-weight:600;
+    background:var(--bg-card);border:1px solid var(--border-dim);color:var(--text-secondary);
+}
+.day-summary-badge .s-present{color:var(--green)}
+.day-summary-badge .s-absent{color:var(--red)}
+
+/* ─── Filas de alumnos ─── */
+.att-student-row{transition:background var(--transition)}
+.att-student-row:hover{background:var(--bg-hover)}
+.att-student-row:not(:last-child) td{border-bottom:1px solid rgba(30,42,58,.5)}
+
+.att-td-student{
+    padding:10px 18px;position:sticky;left:0;background:var(--bg-surface);
+    z-index:1;border-right:1px solid var(--border-dim);
+    transition:background var(--transition);
+}
+.att-student-row:hover .att-td-student{background:var(--bg-hover)}
+.att-student-info{display:flex;align-items:center;gap:10px}
+.att-student-avatar{
+    width:30px;height:30px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--blue-mid),var(--blue-neon));
+    display:flex;align-items:center;justify-content:center;
+    font-size:.62rem;font-weight:700;color:#fff;
+}
+.att-student-name{font-size:.85rem;color:var(--text-white);font-weight:500}
+.att-student-user{font-size:.72rem;color:var(--text-muted)}
+
+.att-td-day{padding:10px 8px;text-align:center;vertical-align:middle}
+
+/* ─── Toggle button ─── */
+.att-btn{
+    width:72px;height:36px;border-radius:var(--radius-sm);border:2px solid var(--border-dim);
+    background:var(--bg-card);cursor:pointer;font-size:.8rem;font-weight:700;
+    transition:all .18s ease;position:relative;overflow:hidden;
+    display:inline-flex;align-items:center;justify-content:center;gap:5px;
+    font-family:inherit;color:var(--text-muted);letter-spacing:.3px;
+}
+.att-btn::after{
+    content:'';position:absolute;inset:0;opacity:0;
+    transition:opacity .18s ease;
+}
+.att-btn:hover{border-color:var(--border-mid);color:var(--text-secondary)}
+
+/* Estado: sin marcar */
+.att-btn.unmarked{color:var(--text-muted);border-color:var(--border-dim)}
+.att-btn.unmarked:hover{border-color:var(--border-mid);color:var(--text-secondary);background:var(--bg-hover)}
+
+/* Estado: presente */
+.att-btn.present{
+    background:var(--green-bg);border-color:var(--green-border);
+    color:var(--green);box-shadow:0 0 8px rgba(34,197,94,.15);
+}
+.att-btn.present:hover{background:rgba(34,197,94,.2);box-shadow:0 0 14px rgba(34,197,94,.3)}
+
+/* Estado: ausente */
+.att-btn.absent{
+    background:var(--red-bg);border-color:var(--red-border);
+    color:var(--red);box-shadow:0 0 8px rgba(240,64,64,.15);
+}
+.att-btn.absent:hover{background:rgba(240,64,64,.2);box-shadow:0 0 14px rgba(240,64,64,.3)}
+
+/* Estado: cargando */
+.att-btn.att-loading{opacity:.6;pointer-events:none;cursor:wait}
+.att-btn.att-loading span{visibility:hidden}
+.att-btn.att-loading::before{
+    content:'';position:absolute;width:16px;height:16px;
+    border:2px solid transparent;border-top-color:currentColor;
+    border-radius:50%;animation:spin .6s linear infinite;
+}
+
+/* ─── Fila vacía ─── */
+.att-empty-row td{
+    padding:40px 18px;text-align:center;color:var(--text-muted);
+    font-size:.85rem;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media(max-width:768px){
+    .asist-controls{flex-direction:column;align-items:stretch}
+    .week-nav{justify-content:space-between}
+    .week-nav-label{min-width:140px}
+    .att-btn{width:60px;height:32px;font-size:.72rem}
+}
+@media(max-width:480px){
+    .asist-week-stats{gap:6px}
+    .asist-stat-pill{padding:5px 10px;font-size:.75rem}
+    .week-nav-today{display:none}
+}
+

@@ -8,7 +8,7 @@
         <option value="alumno">Alumnos</option>
         <option value="profesor">Profesores</option>
     </select>
-    <button class="btn btn-gen" id="btnNewUser" onclick="document.getElementById('userCreateModal').classList.add('visible')">＋ Nuevo Usuario</button>
+    <button class="btn btn-gen" id="btnNewUser" onclick="UserModule.openCreateModal()">＋ Nuevo Usuario</button>
 </div>
 
 {{-- Table --}}
@@ -24,135 +24,87 @@
                 <th>Acciones</th>
             </tr>
         </thead>
-        <tbody>
-            <tr>
-                <td>40123456</td>
-                <td>García, Martín</td>
-                <td>3434-601234</td>
-                <td>mgarcia@uner.edu.ar</td>
-                <td><span class="role-badge alumno">alumno</span></td>
-                <td class="actions-cell">
-                    <button class="action-btn" title="Editar">✏️</button>
-                    <button class="action-btn" title="Cambiar contraseña">🔒</button>
-                    <button class="action-btn danger" title="Eliminar">🗑️</button>
-                </td>
-            </tr>
-            <tr>
-                <td>41234567</td>
-                <td>López, Camila</td>
-                <td>3434-605678</td>
-                <td>clopez@uner.edu.ar</td>
-                <td><span class="role-badge alumno">alumno</span></td>
-                <td class="actions-cell">
-                    <button class="action-btn" title="Editar">✏️</button>
-                    <button class="action-btn" title="Cambiar contraseña">🔒</button>
-                    <button class="action-btn danger" title="Eliminar">🗑️</button>
-                </td>
-            </tr>
-            <tr>
-                <td>39876543</td>
-                <td>Rodríguez, Ana</td>
-                <td>3434-609012</td>
-                <td>arodriguez@uner.edu.ar</td>
-                <td><span class="role-badge alumno">alumno</span></td>
-                <td class="actions-cell">
-                    <button class="action-btn" title="Editar">✏️</button>
-                    <button class="action-btn" title="Cambiar contraseña">🔒</button>
-                    <button class="action-btn danger" title="Eliminar">🗑️</button>
-                </td>
-            </tr>
-            <tr>
-                <td>42345678</td>
-                <td>Fernández, Lucas</td>
-                <td>3434-613456</td>
-                <td>lfernandez@uner.edu.ar</td>
-                <td><span class="role-badge alumno">alumno</span></td>
-                <td class="actions-cell">
-                    <button class="action-btn" title="Editar">✏️</button>
-                    <button class="action-btn" title="Cambiar contraseña">🔒</button>
-                    <button class="action-btn danger" title="Eliminar">🗑️</button>
-                </td>
-            </tr>
-            <tr>
-                <td>38765432</td>
-                <td>Méndez, Sofía</td>
-                <td>3434-617890</td>
-                <td>smendez@uner.edu.ar</td>
-                <td><span class="role-badge profesor">profesor</span></td>
-                <td class="actions-cell">
-                    <button class="action-btn" title="Editar">✏️</button>
-                    <button class="action-btn" title="Cambiar contraseña">🔒</button>
-                    <button class="action-btn danger" title="Eliminar">🗑️</button>
-                </td>
-            </tr>
-            <tr>
-                <td>43456789</td>
-                <td>Torres, Joaquín</td>
-                <td>3434-621234</td>
-                <td>jtorres@uner.edu.ar</td>
-                <td><span class="role-badge alumno">alumno</span></td>
-                <td class="actions-cell">
-                    <button class="action-btn" title="Editar">✏️</button>
-                    <button class="action-btn" title="Cambiar contraseña">🔒</button>
-                    <button class="action-btn danger" title="Eliminar">🗑️</button>
-                </td>
-            </tr>
+        <tbody id="userTableBody">
+            <!-- Cargado por JS -->
         </tbody>
     </table>
 </div>
 
-{{-- Modal: Crear Usuario --}}
+{{-- Modal: Crear/Editar Usuario --}}
 <div class="modal-overlay" id="userCreateModal">
     <div class="modal">
         <div class="modal-header">
-            <h3 class="modal-title">Nuevo Usuario</h3>
+            <h3 class="modal-title" id="userModalTitle">Nuevo Usuario</h3>
             <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
         </div>
-        <form class="modal-body" onsubmit="event.preventDefault(); this.closest('.modal-overlay').classList.remove('visible')">
+        <form class="modal-body" id="userForm" onsubmit="event.preventDefault(); UserModule.saveUser();">
+            <input type="hidden" id="userId">
             <div class="form-row-2">
                 <div class="form-group">
                     <label class="form-label">Nombre</label>
-                    <input class="form-input" required placeholder="Juan">
+                    <input class="form-input" id="userNombre" required placeholder="Juan">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Apellido</label>
-                    <input class="form-input" required placeholder="Pérez">
+                    <input class="form-input" id="userApellido" required placeholder="Pérez">
                 </div>
             </div>
             <div class="form-row-2">
                 <div class="form-group">
                     <label class="form-label">DNI</label>
-                    <input class="form-input" required placeholder="12345678">
+                    <input class="form-input" id="userDni" required placeholder="12345678">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Teléfono</label>
-                    <input class="form-input" placeholder="3434-000000">
+                    <input class="form-input" id="userTelefono" placeholder="3434-000000">
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Correo electrónico</label>
-                <input class="form-input" type="email" required placeholder="usuario@uner.edu.ar">
+                <input class="form-input" type="email" id="userCorreo" required placeholder="usuario@uner.edu.ar">
             </div>
             <div class="form-row-2">
                 <div class="form-group">
                     <label class="form-label">Usuario (login)</label>
-                    <input class="form-input" required placeholder="jperez">
+                    <input class="form-input" id="userUsername" required placeholder="jperez">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Contraseña</label>
-                    <input class="form-input" type="password" required placeholder="••••••••">
+                    <input class="form-input" type="password" id="userPassword" placeholder="••••••••">
+                    <small style="color:var(--text-secondary);font-size:0.75rem;display:none;" id="userPasswordHelp">Déjalo en blanco para no cambiarla.</small>
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Rol</label>
-                <select class="form-input form-select" required>
+                <select class="form-input form-select" id="userRole" required>
                     <option value="alumno">Alumno</option>
                     <option value="profesor">Profesor</option>
                 </select>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('visible')">Cancelar</button>
-                <button type="submit" class="btn-submit">Crear Usuario</button>
+                <button type="submit" class="btn-submit">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Modal: Cambiar Contraseña --}}
+<div class="modal-overlay" id="userPasswordModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Cambiar Contraseña</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+        </div>
+        <form class="modal-body" id="userPasswordForm" onsubmit="event.preventDefault(); UserModule.savePassword();">
+            <input type="hidden" id="pwdUserId">
+            <div class="form-group">
+                <label class="form-label">Nueva Contraseña</label>
+                <input class="form-input" type="password" id="newPassword" required placeholder="Mínimo 4 caracteres" minlength="4">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('visible')">Cancelar</button>
+                <button type="submit" class="btn-submit">Actualizar Contraseña</button>
             </div>
         </form>
     </div>

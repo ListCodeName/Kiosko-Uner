@@ -53,6 +53,15 @@
                 <div class="nav-group-items">
 
                     <button class="nav-item"
+                            data-module="kiosco"
+                            data-title="Kiosco"
+                            data-badge="Punto de Venta"
+                            data-tooltip="Kiosco">
+                        <span class="nav-icon">🏪</span>
+                        <span class="nav-label">Kiosco</span>
+                    </button>
+
+                    <button class="nav-item"
                             data-module="compras"
                             data-title="Compras"
                             data-badge="Kiosko"
@@ -206,6 +215,10 @@
                 @include('panel.modules.inicio')
             </section>
 
+            <section class="module-section" data-module-content="kiosco">
+                @include('panel.modules.kiosco')
+            </section>
+
             <section class="module-section" data-module-content="compras">
                 @include('panel.modules.compras')
             </section>
@@ -253,5 +266,6 @@
 </div>{{-- /.panel-layout --}}
 
 <script src="{{ asset('js/panel/panel.js') }}"></script>
+<script src="{{ asset('js/panel/kiosco.js') }}"></script>
 </body>
 </html>
