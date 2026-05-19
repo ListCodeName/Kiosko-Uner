@@ -45,6 +45,11 @@
                 <span class="nav-label">Grupos</span>
             </button>
 
+            <button class="nav-item" data-module="asistencia" data-title="Asistencia" data-badge="Gestión" data-tooltip="Asistencia">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Asistencia</span>
+            </button>
+
             <div class="nav-divider"></div>
             <span class="nav-section-label">Desempeño</span>
 
@@ -107,6 +112,9 @@
             <section class="module-section" data-module-content="grupos">
                 @include('profesor.modules.grupos')
             </section>
+            <section class="module-section" data-module-content="asistencia">
+                @include('profesor.modules.asistencia')
+            </section>
             <section class="module-section" data-module-content="desempeno-individual">
                 @include('profesor.modules.desempeno_individual')
             </section>
@@ -124,5 +132,10 @@
 <div class="toast" id="toast"></div>
 
 <script src="{{ asset('js/profesor/profesor.js') }}"></script>
+<script src="{{ asset('js/profesor/grupos.js') }}"></script>
+<script src="{{ asset('js/profesor/asistencia.js') }}"></script>
+<script src="{{ asset('js/profesor/desempeno_individual.js') }}"></script>
+
+<script src="{{ asset('js/profesor/usuarios.js') }}"></script>
 </body>
 </html>

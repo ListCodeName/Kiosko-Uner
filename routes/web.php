@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\Profesor\AttendanceController;
+use App\Http\Controllers\Profesor\PerformanceController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -65,9 +67,15 @@ Route::post('/logout', function (\Illuminate\Http\Request $request) {
 | Panel Alumno (requiere autenticación + rol alumno)
 |--------------------------------------------------------------------------
 */
-Route::get('/panel', function () {
-    return view('panel.index');
-})->middleware(['auth', 'role:alumno'])->name('panel');
+Route::middleware(['auth', 'role:alumno'])->prefix('panel')->group(function () {
+    Route::get('/', function () {
+        return view('panel.index');
+    })->name('panel');
+
+    // Kiosco POS API
+    Route::get('/api/kiosco/categories', [\App\Http\Controllers\Panel\KioscoController::class, 'categories']);
+    Route::post('/api/kiosco/sale',      [\App\Http\Controllers\Panel\KioscoController::class, 'sale']);
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -113,9 +121,37 @@ Route::middleware('auth')->prefix('api')->group(function () {
 | Panel Profesor (placeholder)
 |--------------------------------------------------------------------------
 */
-Route::get('/profesor', function () {
-    return view('profesor.index');
-})->middleware(['auth', 'role:profesor'])->name('profesor');
+Route::middleware(['auth', 'role:profesor'])->prefix('profesor')->group(function () {
+    Route::get('/', function () {
+        return view('profesor.index');
+    })->name('profesor');
+
+    // Groups API
+    Route::get('/api/groups', [\App\Http\Controllers\Profesor\GroupController::class, 'index']);
+    Route::post('/api/groups', [\App\Http\Controllers\Profesor\GroupController::class, 'store']);
+    Route::put('/api/groups/{group}', [\App\Http\Controllers\Profesor\GroupController::class, 'update']);
+    Route::delete('/api/groups/{group}', [\App\Http\Controllers\Profesor\GroupController::class, 'destroy']);
+    Route::post('/api/groups/{group}/members', [\App\Http\Controllers\Profesor\GroupController::class, 'addStudent']);
+    Route::delete('/api/groups/{group}/members/{user}', [\App\Http\Controllers\Profesor\GroupController::class, 'removeStudent']);
+    Route::get('/api/students', [\App\Http\Controllers\Profesor\GroupController::class, 'searchStudents']);
+
+    // Attendance API
+    Route::get('/api/attendance',  [AttendanceController::class, 'index']);
+    Route::post('/api/attendance', [\App\Http\Controllers\Profesor\AttendanceController::class, 'upsert']);
+
+    // Users API (Módulo de Usuarios)
+    Route::get('/api/users', [\App\Http\Controllers\Profesor\UserController::class, 'index']);
+    Route::post('/api/users', [\App\Http\Controllers\Profesor\UserController::class, 'store']);
+    Route::put('/api/users/{id}', [\App\Http\Controllers\Profesor\UserController::class, 'update']);
+    Route::put('/api/users/{id}/password', [\App\Http\Controllers\Profesor\UserController::class, 'updatePassword']);
+    Route::delete('/api/users/{id}', [\App\Http\Controllers\Profesor\UserController::class, 'destroy']);
+
+    // Performance API
+    Route::get('/api/performance/individual',        [PerformanceController::class, 'individual']);
+    Route::get('/api/performance/attendance-detail', [PerformanceController::class, 'attendanceDetail']);
+    Route::get('/api/performance/activity-detail',   [PerformanceController::class, 'activityDetail']);
+});
+
 
 /*
 |--------------------------------------------------------------------------
