@@ -3,6 +3,7 @@
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\Profesor\AttendanceController;
 use App\Http\Controllers\Profesor\PerformanceController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -69,7 +70,13 @@ Route::post('/logout', function (\Illuminate\Http\Request $request) {
 */
 Route::middleware(['auth', 'role:alumno'])->prefix('panel')->group(function () {
     Route::get('/', function () {
-        return view('panel.index');
+        $products = \App\Models\Product::where('is_active', true)
+            ->orderBy('name', 'asc')
+            ->get();
+        $deletedProducts = \App\Models\Product::where('is_active', false)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+        return view('panel.index', compact('products', 'deletedProducts'));
     })->name('panel');
 
     // Kiosco POS API
@@ -169,4 +176,19 @@ Route::get('/directivo', function () {
 */
 Route::get('/showcase', function () {
     return view('showcase.index');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Productos (Sergio - aguilarsergio2302-ui)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('products')->name('products.')->group(function () {
+    Route::get('/',                               [ProductController::class, 'index'])->name('index');
+    Route::post('/',                              [ProductController::class, 'store'])->name('store');
+    Route::get('/{product}/edit',                 [ProductController::class, 'edit'])->name('edit');
+    Route::put('/{product}',                      [ProductController::class, 'update'])->name('update');
+    Route::delete('/{product}',                   [ProductController::class, 'destroy'])->name('destroy');
+    Route::patch('/{product}/stock',              [ProductController::class, 'updateStock'])->name('updateStock');
+    Route::patch('/{product}/restore',            [ProductController::class, 'restore'])->name('restore');
 });
