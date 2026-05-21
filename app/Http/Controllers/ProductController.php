@@ -36,20 +36,48 @@ class ProductController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'tipo'        => 'required|in:reventa,insumo,elaborado',
+            'price'       => 'nullable|numeric|min:0',
+            'grupo'       => 'nullable|string',
         ]);
 
-        $validated['price']     = 0;
+        $tipo = $validated['tipo'];
+        $grupo = $request->input('grupo');
+
+        if ($tipo === 'elaborado') {
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => 'Elaborados'],
+                ['icon' => '🍕', 'sort_order' => 99, 'is_produced' => true]
+            );
+        } elseif ($tipo === 'insumo') {
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => 'Insumos Cocina'],
+                ['icon' => '🍳', 'sort_order' => 6, 'is_produced' => false]
+            );
+        } else { // reventa
+            $grupoName = $grupo ? trim($grupo) : 'Otros';
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => $grupoName],
+                ['icon' => '📦', 'sort_order' => 10, 'is_produced' => false]
+            );
+        }
+
+        // El precio solo se admite para elaborados; reventa e insumo arrancan en 0.
+        $validated['price']     = ($tipo === 'elaborado' && isset($validated['price']))
+                                    ? $validated['price']
+                                    : 0;
         $validated['stock']     = 0;
         $validated['is_active'] = true;
+        $validated['category_id'] = $category->id;
 
-        Product::create($validated);
+        $product = Product::create($validated);
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'INSERT', 'Productos', 'Creó el producto: ' . $product->name . ' (Tipo: ' . $product->tipo . ')');
 
         return redirect()->route('panel')
             ->with('success', 'Producto "' . $validated['name'] . '" creado correctamente.');
     }
 
     /**
-     * Actualiza los datos básicos de un producto (solo nombre, descripción y tipo).
+     * Actualiza los datos básicos de un producto (solo nombre, descripción, tipo y categoría).
      * El precio y stock se gestionan exclusivamente a través de las compras.
      */
     public function update(Request $request, Product $product)
@@ -58,9 +86,45 @@ class ProductController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'tipo'        => 'required|in:reventa,insumo,elaborado',
+            'price'       => 'nullable|numeric|min:0',
+            'grupo'       => 'nullable|string',
         ]);
 
-        $product->update($validated);
+        $tipo = $validated['tipo'];
+        $grupo = $request->input('grupo');
+
+        if ($tipo === 'elaborado') {
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => 'Elaborados'],
+                ['icon' => '🍕', 'sort_order' => 99, 'is_produced' => true]
+            );
+            // Actualizar precio solo si es elaborado y se envió un valor
+            if (isset($validated['price']) && $validated['price'] !== null) {
+                $product->price = $validated['price'];
+            }
+        } elseif ($tipo === 'insumo') {
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => 'Insumos Cocina'],
+                ['icon' => '🍳', 'sort_order' => 6, 'is_produced' => false]
+            );
+            $product->price = 0;
+        } else { // reventa
+            $grupoName = $grupo ? trim($grupo) : 'Otros';
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => $grupoName],
+                ['icon' => '📦', 'sort_order' => 10, 'is_produced' => false]
+            );
+            $product->price = 0; // Se actualiza por compras
+        }
+
+        $product->update([
+            'name'        => $validated['name'],
+            'description' => $validated['description'] ?? $product->description,
+            'tipo'        => $validated['tipo'],
+            'category_id' => $category->id,
+        ]);
+        $product->save();
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Actualizó el producto: ' . $product->name);
 
         return redirect()->route('panel')
             ->with('success', 'Producto "' . $product->name . '" actualizado correctamente.');
@@ -73,6 +137,7 @@ class ProductController extends Controller
     {
         $name = $product->name;
         $product->update(['is_active' => false]);
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'DELETE', 'Productos', 'Eliminó lógicamente el producto: ' . $name);
 
         return redirect()->route('panel')
             ->with('success', 'Producto "' . $name . '" eliminado correctamente.');
@@ -85,6 +150,7 @@ class ProductController extends Controller
     public function restore(Request $request, Product $product)
     {
         $product->update(['is_active' => true]);
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Reactivó el producto: ' . $product->name);
 
         return redirect()->route('panel')
             ->with('success', 'Producto "' . $product->name . '" reactivado correctamente.');
@@ -111,6 +177,7 @@ class ProductController extends Controller
             $product->price = $request->precio;
         }
         $product->save();
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Cargó ' . $request->unidades . ' unidades de elaborado para: ' . $product->name);
 
         return redirect()->route('panel')
             ->with('success', $request->unidades . ' unidades cargadas para "' . $product->name . '".');
@@ -133,6 +200,7 @@ class ProductController extends Controller
 
         $product->stock = max(0, $product->stock - $request->sobrantes);
         $product->save();
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Dio de baja ' . $request->sobrantes . ' sobrantes de elaborado para: ' . $product->name);
 
         return redirect()->route('panel')
             ->with('success', $request->sobrantes . ' sobrantes dados de baja para "' . $product->name . '".');
@@ -151,16 +219,29 @@ class ProductController extends Controller
     public function search(Request $request)
     {
         $q = $request->get('q', '');
+        $tipo = $request->get('tipo', '');
 
-        $products = Product::where('is_active', true)
-            ->when($q !== '', function ($query) use ($q) {
-                // Búsqueda por nombre (LIKE, case-insensitive en MySQL)
-                $query->where('name', 'like', '%' . $q . '%');
+        $query = Product::where('is_active', true)
+            ->when($tipo !== '', function ($query) use ($tipo) {
+                $tipos = explode(',', $tipo);
+                $query->whereIn('tipo', $tipos);
             })
             ->orderBy('tipo')
-            ->orderBy('name')
-            ->limit(15)
-            ->get(['id', 'name', 'tipo', 'price', 'stock', 'description']);
+            ->orderBy('name');
+
+        if ($q === '') {
+            // Si la consulta q está vacía, no limitamos para permitir la inicialización completa del caché del frontend
+            $products = $query->get(['id', 'name', 'tipo', 'price', 'stock', 'description']);
+        } else {
+            // Traemos los productos relevantes para filtrar de forma robusta e insensible a acentos en PHP (SQLite fix)
+            $products = $query->get(['id', 'name', 'tipo', 'price', 'stock', 'description']);
+            
+            $normalizedQ = Str::lower(Str::ascii($q));
+            $products = $products->filter(function ($product) use ($normalizedQ) {
+                $normalizedName = Str::lower(Str::ascii($product->name));
+                return str_contains($normalizedName, $normalizedQ);
+            })->take(15)->values();
+        }
 
         return response()->json($products);
     }
@@ -177,13 +258,37 @@ class ProductController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'tipo'        => 'required|in:reventa,insumo,elaborado',
+            'grupo'       => 'nullable|string',
         ]);
+
+        $tipo = $validated['tipo'];
+        $grupo = $request->input('grupo');
+
+        if ($tipo === 'elaborado') {
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => 'Elaborados'],
+                ['icon' => '🍕', 'sort_order' => 99, 'is_produced' => true]
+            );
+        } elseif ($tipo === 'insumo') {
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => 'Insumos Cocina'],
+                ['icon' => '🍳', 'sort_order' => 6, 'is_produced' => false]
+            );
+        } else { // reventa
+            $grupoName = $grupo ? trim($grupo) : 'Otros';
+            $category = \App\Models\ProductCategory::firstOrCreate(
+                ['name' => $grupoName],
+                ['icon' => '📦', 'sort_order' => 10, 'is_produced' => false]
+            );
+        }
 
         $validated['price']     = 0;
         $validated['stock']     = 0;
         $validated['is_active'] = true;
+        $validated['category_id'] = $category->id;
 
         $product = Product::create($validated);
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'INSERT', 'Productos', 'Creación rápida del producto: ' . $product->name . ' (Tipo: ' . $product->tipo . ')');
 
         return response()->json([
             'success' => true,
@@ -218,7 +323,7 @@ class ProductController extends Controller
             $product->price = $request->precio;
         }
         $product->save();
-
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Cargó ' . $request->unidades . ' unidades de elaborado para: ' . $product->name . ' (API)');
         return response()->json([
             'success'   => true,
             'message'   => $request->unidades . ' unidades cargadas.',
@@ -241,7 +346,7 @@ class ProductController extends Controller
 
         $product->stock = max(0, $product->stock - $request->sobrantes);
         $product->save();
-
+        \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Dio de baja ' . $request->sobrantes . ' sobrantes de elaborado para: ' . $product->name . ' (API)');
         return response()->json([
             'success'   => true,
             'message'   => $request->sobrantes . ' sobrantes dados de baja.',

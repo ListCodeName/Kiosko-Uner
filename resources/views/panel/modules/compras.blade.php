@@ -35,7 +35,7 @@
 .ac-wrap { position:relative; }
 .ac-input-row { display:flex;gap:.4rem;align-items:center; }
 .ac-input-row .form-input { flex:1; }
-.ac-dropdown { position:absolute;top:100%;left:0;right:0;background:#1a1d2e;border:1px solid rgba(108,99,255,.35);border-radius:8px;z-index:600;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);margin-top:2px;max-height:220px;overflow-y:auto; }
+.ac-dropdown { height:125px; position:absolute;top:100%;left:0;right:0;background:#1a1d2e;border:1px solid rgba(108,99,255,.35);border-radius:8px;z-index:600;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);margin-top:2px;max-height:200px;overflow-y:auto; }
 .ac-item { display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;cursor:pointer;font-size:.88rem;color:#e8eaf0;transition:background .12s; }
 .ac-item:hover,.ac-item.selected { background:rgba(108,99,255,.2); }
 .ac-item-name { flex:1;font-weight:500; }
@@ -47,6 +47,20 @@
 .ac-no-results { padding:.6rem .9rem;font-size:.82rem;color:#8990a8;font-style:italic; }
 .ac-create-btn { display:flex;align-items:center;gap:.4rem;padding:.55rem .9rem;cursor:pointer;font-size:.84rem;color:#8b85ff;border-top:1px solid rgba(255,255,255,.06);background:rgba(108,99,255,.08);transition:background .12s;font-weight:600; }
 .ac-create-btn:hover { background:rgba(108,99,255,.2); }
+
+/* ── SELECTOR DE TIPO INLINE ── */
+.item-tipo-select {
+    width:100px;flex-shrink:0;
+    background:#0f1117;border:1px solid rgba(255,255,255,.12);border-radius:7px;
+    padding:.42rem .5rem;color:#e8eaf0;font-size:.78rem;font-weight:600;
+    cursor:pointer;outline:none;appearance:none;font-family:inherit;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238990a8'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:calc(100% - 7px) 50%;
+    padding-right:22px;transition:border-color .15s;
+}
+.item-tipo-select:focus { border-color:#6c63ff; }
+.item-tipo-select.tipo-reventa { color:#22d3a0;border-color:rgba(34,211,160,.35); }
+.item-tipo-select.tipo-insumo  { color:#fbbf24;border-color:rgba(251,191,36,.35); }
 
 /* ── INLINE CREAR PRODUCTO ── */
 .ac-quick-create { background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.2);border-radius:8px;padding:.75rem;margin-top:.3rem;animation:pmIn .18s ease; }
@@ -74,7 +88,7 @@
 
 {{-- ══════════════════ MODAL: NUEVA COMPRA ══════════════════ --}}
 <div class="modal-overlay" id="compraCreateModal">
-    <div class="modal" style="max-width:680px">
+    <div class="modal" style="max-width: min(780px, 90dvw);">
         <div class="modal-header">
             <h3 class="modal-title">🛒 Nueva Compra</h3>
             <button class="modal-close" id="compraModalClose">✕</button>
@@ -101,6 +115,7 @@
                 {{-- Cabecera items --}}
                 <div class="items-header" style="font-size:.72rem">
                     <span style="flex:2">Producto</span>
+                    <span style="width:100px">Tipo</span>
                     <span style="width:76px;text-align:center">Cant.</span>
                     <span style="width:100px;text-align:right">Precio unit.</span>
                     <span style="width:100px;text-align:right">Subtotal</span>
@@ -362,13 +377,12 @@
                     value="${prefill.name || ''}" autocomplete="off"
                     style="width:100%" data-idx="${idx}">
                 <div class="ac-dropdown" id="ac-dd-${idx}" style="display:none"></div>
-                ${prefill.tipo ? `
-                <div style="margin-top:.25rem;display:flex;align-items:center;gap:.4rem">
-                    <span class="item-tipo-badge item-tipo-badge--${prefill.tipo}">${tipoBadge[prefill.tipo]}</span>
-                    ${tipoInfo[prefill.tipo] ? `<span class="item-tipo-info item-tipo-info--${prefill.tipo}">${tipoInfo[prefill.tipo]}</span>` : ''}
-                </div>` : ''}
                 <div class="ac-quick-create" id="ac-qc-${idx}" style="display:none"></div>
             </div>
+            <select class="item-tipo-select tipo-${prefill.tipo || 'reventa'}" title="Tipo de producto">
+                <option value="reventa" ${(prefill.tipo || 'reventa') === 'reventa' ? 'selected' : ''}>🛍️ Reventa</option>
+                <option value="insumo"  ${prefill.tipo === 'insumo'  ? 'selected' : ''}>🧂 Insumo</option>
+            </select>
             <input class="form-input item-qty" type="number" step="0.01" min="0.01"
                 placeholder="Cant." value="${prefill.qty || ''}"
                 style="width:72px;text-align:center" required>
@@ -378,6 +392,17 @@
             <span class="item-subtotal" style="width:96px;text-align:right;color:var(--blue-light);font-weight:600;font-size:.88rem;align-self:center">$0,00</span>
             <button type="button" class="item-remove-btn" title="Quitar">✕</button>
         `;
+
+        // Tipo select cambia color y actualiza _productTipo
+        const tipoSelect = div.querySelector('.item-tipo-select');
+        tipoSelect.addEventListener('change', () => {
+            tipoSelect.className = 'item-tipo-select tipo-' + tipoSelect.value;
+            // Si el tipo cambia manualmente, resetear la selección de producto del catálogo
+            div._productId   = null;
+            div._productTipo = tipoSelect.value;
+            updateItemTipoBadge(div, null);
+        });
+        div._productTipo = prefill.tipo || 'reventa';
 
         // Calcular subtotal
         const calcItem = () => {
@@ -499,15 +524,20 @@
         nameInput.value = product.name;
         rowDiv._productId   = product.id;
         rowDiv._productTipo = product.tipo;
+        // Sincronizar el select de tipo
+        const tipoSel = rowDiv.querySelector('.item-tipo-select');
+        if (tipoSel && (product.tipo === 'reventa' || product.tipo === 'insumo')) {
+            tipoSel.value = product.tipo;
+            tipoSel.className = 'item-tipo-select tipo-' + product.tipo;
+        }
         dropdown.style.display = 'none';
-        updateItemTipoBadge(rowDiv, product.tipo);
+        updateItemTipoBadge(rowDiv, null); // badge ya no se usa, lo maneja el select
         // Pre-llenar precio con el último conocido
         const priceInput = rowDiv.querySelector('.item-price');
         if (product.price > 0 && !priceInput.value) {
             priceInput.value = product.price;
             priceInput.dispatchEvent(new Event('input'));
         }
-        // Invalidar cache para refrescar si se creó un producto nuevo
         rowDiv.querySelector('.item-qty')?.focus();
     }
 
@@ -630,7 +660,8 @@
 
         document.querySelectorAll('.compra-item-row-form').forEach(row => {
             const nameVal  = row.querySelector('.item-name').value.trim();
-            const tipo     = row._productTipo || 'reventa';
+            const tipoSel  = row.querySelector('.item-tipo-select');
+            const tipo     = row._productTipo || (tipoSel ? tipoSel.value : 'reventa');
             const pid      = row._productId   || null;
             if (!nameVal) return;
             items.push({

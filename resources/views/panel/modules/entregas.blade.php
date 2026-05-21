@@ -37,7 +37,7 @@
         <hr class="emodal-divider">
 
         <div class="emodal-prods-header">
-            <span>Producto</span><span>Precio</span>
+            <span>Producto</span><span>Subtotal</span>
         </div>
         <ul class="emodal-prods-list" id="emodProdsList"></ul>
 
@@ -46,6 +46,35 @@
             <span id="emodTotal">$0</span>
         </div>
         <div class="emodal-confirmado" id="emodConfirmado"></div>
+        
+        <button class="btn btn-confirm" style="width: 100%; justify-content: center; margin-top: 1rem; padding: .6rem; background: linear-gradient(135deg,#c8a96e,#a07840); border: 1px solid #7a5a30; color:#3d2e1a; font-weight:bold;" onclick="abrirModalEntregarDesdeExpand()">
+            🚚 Entregar y Cobrar
+        </button>
+    </div>
+</div>
+
+{{-- ══════════════════════════════════
+     MODAL: ENTREGAR PEDIDO
+     Permite seleccionar el método de pago antes de cobrar.
+══════════════════════════════════ --}}
+<div class="modal-overlay" id="modalEntregar" style="display:none" onclick="if(event.target===this) window.closeModal('modalEntregar')">
+    <div class="modal-card">
+        <div class="modal-icon">🚚</div>
+        <h3 class="modal-title">Entregar y Cobrar Pedido</h3>
+        <p class="modal-desc" style="margin-bottom: 1rem;">Confirmá la entrega del pedido y seleccioná el método de pago utilizado.</p>
+        
+        <div class="form-group" style="margin-bottom: 1.4rem;">
+            <label>Método de Pago</label>
+            <select id="entregasMetodoPago" class="form-input">
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="transferencia">📱 Transferencia</option>
+            </select>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="window.closeModal('modalEntregar')">Cancelar</button>
+            <button class="btn btn-confirm" id="btnConfirmarEntrega" onclick="procesarEntrega()">🚚 Entregar y Registrar</button>
+        </div>
     </div>
 </div>
 
@@ -140,7 +169,7 @@
 
 .emodal-card {
     background:#f5f0e8; border:1px solid #d9cdb8; border-radius:16px;
-    padding:1.6rem; max-width:480px; width:92%; position:relative;
+    padding:1.6rem; max-width: min(560px, 90dvw); width:92%; position:relative;
     box-shadow:0 8px 32px rgba(0,0,0,.35);
     animation:slideUpE .25s ease;
 }
@@ -185,39 +214,65 @@
 .emodal-total span:last-child { color:#6b3e10; }
 
 .emodal-confirmado { font-size:.7rem; color:#9a8060; text-align:right; margin-top:.5rem; }
+
+/* ── Estilos inputs select premium ── */
+select.form-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .8rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+}
 </style>
 
 <script>
-// ── Estado compartido con pedidos ──────────────────────
-var entregas = [];
-const PREVIEW_MAX = 5; // máximo de productos en preview
+// ── Estado ──────────────────────────────────────────────
+let entregasLocal = [];
+let entregaAProcesar = null;
+const PREVIEW_MAX = 5;
 
+// ── Cargar entregas del servidor (pedidos con estado 'confirmed') ──
+window.refreshEntregas = async function() {
+    try {
+        const res = await fetch('/panel/api/pedidos');
+        const data = await res.json();
+        entregasLocal = data.filter(p => p.estado === 'confirmed');
+        renderEntregas();
+    } catch(e) {
+        console.warn('Error al cargar entregas desde el servidor:', e);
+    }
+};
+
+// ── Render de entregas ───────────────────────────────────
 function renderEntregas() {
     const grid  = document.getElementById('entregasGrid');
     const empty = document.getElementById('entregasEmpty');
     const badge = document.getElementById('entregasBadge');
     if (!grid) return;
 
-    badge.textContent = entregas.length + ' pendiente' + (entregas.length !== 1 ? 's' : '');
+    if (badge) {
+        badge.textContent = entregasLocal.length + ' pendiente' + (entregasLocal.length !== 1 ? 's' : '');
+    }
     grid.innerHTML = '';
 
-    if (entregas.length === 0) { empty.style.display='flex'; return; }
+    if (entregasLocal.length === 0) { empty.style.display='flex'; return; }
     empty.style.display = 'none';
 
-    entregas.forEach(e => {
-        const total    = e.productos.reduce((s,x) => s + x.precio, 0);
+    entregasLocal.forEach(e => {
         const preview  = e.productos.slice(0, PREVIEW_MAX);
         const hayMas   = e.productos.length > PREVIEW_MAX;
         const card     = document.createElement('div');
         card.className = 'entrega-card';
         card.dataset.id = e.id;
 
-        const previewHTML = preview.map(p =>
-            `<li class="ecard-producto-item">
-                <span class="ecard-prod-nombre">${p.nombre}</span>
-                <span class="ecard-prod-precio">$${p.precio.toLocaleString('es-AR')}</span>
-             </li>`
-        ).join('');
+        const previewHTML = preview.map(p => {
+            const qtyLabel = p.cantidad > 1 ? ` x${p.cantidad}` : '';
+            return `<li class="ecard-producto-item">
+                <span class="ecard-prod-nombre">${p.nombre}${qtyLabel}</span>
+                <span class="ecard-prod-precio">$${p.subtotal.toLocaleString('es-AR')}</span>
+             </li>`;
+        }).join('');
 
         const verMasBtn = hayMas
             ? `<button class="ecard-ver-mas" onclick="expandirEntrega(${e.id})">
@@ -233,47 +288,106 @@ function renderEntregas() {
             <div class="ecard-meta">
                 <span class="ecard-meta-item">📅 ${e.fecha}</span>
                 <span class="ecard-meta-item">🕐 ${e.hora}</span>
+                ${e.horaEntrega ? `<span class="ecard-meta-item" style="background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); font-weight: bold;">🕐 Est: ${e.horaEntrega}</span>` : ''}
             </div>
             <hr class="ecard-divider">
             <ul class="ecard-productos">${previewHTML}</ul>
             ${verMasBtn}
             <div class="ecard-total">
                 <span class="ecard-total-label">Total</span>
-                <span class="ecard-total-valor">$${total.toLocaleString('es-AR')}</span>
+                <span class="ecard-total-valor">$${e.total.toLocaleString('es-AR')}</span>
             </div>
-            <div class="ecard-confirmado">✅ Confirmado: ${e.confirmadoEn}</div>`;
+            <button class="btn btn-confirm" style="width: 100%; justify-content: center; margin-top: .6rem; padding: .45rem; background: linear-gradient(135deg, #c8a96e, #a07840); color: #3d2e1a; font-weight: 700; border: 1px solid #7a5a30; box-shadow: 0 4px 10px rgba(160,120,64,0.25);" onclick="abrirModalEntregar(${e.id})">
+                🚚 Entregar
+            </button>`;
 
         grid.appendChild(card);
     });
 }
 
+// ── Expandir ─────────────────────────────────────────────
 function expandirEntrega(id) {
-    const e = entregas.find(x => x.id === id);
+    const e = entregasLocal.find(x => x.id === id);
     if (!e) return;
-    const total = e.productos.reduce((s,x) => s + x.precio, 0);
 
     document.getElementById('emodCliente').textContent    = '👤 ' + e.cliente;
     document.getElementById('emodNum').textContent        = '#' + e.id;
     document.getElementById('emodFecha').textContent      = e.fecha;
     document.getElementById('emodHora').textContent       = e.hora;
-    document.getElementById('emodTotal').textContent      = '$' + total.toLocaleString('es-AR');
-    document.getElementById('emodConfirmado').textContent = '✅ Confirmado: ' + e.confirmadoEn;
+    document.getElementById('emodTotal').textContent      = '$' + e.total.toLocaleString('es-AR');
+    document.getElementById('emodConfirmado').textContent = e.horaEntrega ? '🕐 Entrega estimada: ' + e.horaEntrega : '🕐 Sin horario definido';
 
     const lista = document.getElementById('emodProdsList');
-    lista.innerHTML = '';
-    e.productos.forEach(p => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span>${p.nombre}</span><span>$${p.precio.toLocaleString('es-AR')}</span>`;
-        lista.appendChild(li);
-    });
+    if (lista) {
+        lista.innerHTML = '';
+        e.productos.forEach(p => {
+            const li = document.createElement('li');
+            const qtyLabel = p.cantidad > 1 ? ` x${p.cantidad}` : '';
+            li.innerHTML = `<span>${p.nombre}${qtyLabel}</span><span>$${p.subtotal.toLocaleString('es-AR')}</span>`;
+            lista.appendChild(li);
+        });
+    }
 
     window.openModal('modalEntregaExpand');
 }
 
-function cerrarModalEntrega() {
-    window.closeModal('modalEntregaExpand');
+// ── Entregar y Cobrar ────────────────────────────────────
+function abrirModalEntregar(id) {
+    entregaAProcesar = id;
+    window.openModal('modalEntregar');
 }
 
-// Render inicial
-renderEntregas();
+function abrirModalEntregarDesdeExpand() {
+    const numSpan = document.getElementById('emodNum');
+    if (!numSpan) return;
+    const id = parseInt(numSpan.textContent.replace('#', ''));
+    if (!id) return;
+    abrirModalEntregar(id);
+}
+
+function procesarEntrega() {
+    const id = entregaAProcesar;
+    if (!id) return;
+    const metodoPago = document.getElementById('entregasMetodoPago').value;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    fetch(`/panel/api/pedidos/${id}/entregar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ metodo_pago: metodoPago })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.closeModal('modalEntregar');
+            window.closeModal('modalEntregaExpand');
+            window.refreshEntregas();
+            
+            // Refrescar módulo de ventas en tiempo real
+            if (typeof window.VentasModuleRefresh === 'function') {
+                window.VentasModuleRefresh();
+            }
+
+            // Refrescar módulo de pedidos en tiempo real
+            if (typeof window.refreshPedidos === 'function') {
+                window.refreshPedidos();
+            }
+        } else {
+            alert(data.message || 'Error al procesar la entrega.');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Ocurrió un error al registrar la entrega.');
+    });
+    entregaAProcesar = null;
+}
+
+// Carga Inicial
+window.refreshEntregas();
+setInterval(window.refreshEntregas, 60000);
 </script>

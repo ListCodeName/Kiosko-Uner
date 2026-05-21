@@ -2,22 +2,19 @@
  * KIOSKO-UNER | MÓDULO KIOSCO – Punto de Venta (POS)
  * Catálogo de productos + carrito interactivo + checkout con método de pago y estado
  *
- * Las ventas se persisten en localStorage['kiosko_ventas'] (compartido con ventas.blade.php).
  * Al confirmar una venta:
  *   1. Se abre el modal de checkout para elegir método y estado de pago.
- *   2. Se guarda la venta en localStorage.
+ *   2. Se llama a la API para registrar en base de datos y descontar stock (/panel/api/kiosco/sale).
  *   3. Se notifica al módulo de ventas (si está montado) mediante window.VentasModuleRefresh().
- *   4. Se llama a la API para descontar stock (/panel/api/kiosco/sale).
  */
 (function () {
     'use strict';
-
+ 
     /* ──────────────────────────────────────────────────────────
        CONSTANTES
     ────────────────────────────────────────────────────────── */
     const API_CATEGORIES = '/panel/api/kiosco/categories';
     const API_SALE       = '/panel/api/kiosco/sale';
-    const STORAGE_KEY    = 'kiosko_ventas';
 
     /* ──────────────────────────────────────────────────────────
        ESTADO LOCAL
@@ -64,24 +61,6 @@
         return new Date().toTimeString().slice(0, 5);
     }
 
-    /* ──────────────────────────────────────────────────────────
-       PERSISTENCIA LOCAL DE VENTAS
-    ────────────────────────────────────────────────────────── */
-    function storageLoad() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : [];
-        } catch (e) { return []; }
-    }
-
-    function storageSave(ventas) {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ventas)); } catch (e) {}
-    }
-
-    function nextVentaId(ventas) {
-        if (!ventas.length) return 1;
-        return Math.max(...ventas.map(v => v.id)) + 1;
-    }
 
     /* ──────────────────────────────────────────────────────────
        TOAST
@@ -181,8 +160,8 @@
             filtered = filtered.filter(p => p.category_id === catId);
         }
         if (state.searchQuery) {
-            const q = state.searchQuery.toLowerCase();
-            filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
+            const q = state.searchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            filtered = filtered.filter(p => p.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q));
         }
 
         if (!filtered.length) {
@@ -352,60 +331,44 @@
         const items  = state.cart.map(c => ({
             product_id: c.product_id,
             qty:        c.qty,
-            nombre:     c.name,
-            precio:     c.price,
-            cantidad:   c.qty,
         }));
 
         state.submitting = true;
         btn.disabled = true;
         btn.innerHTML = '<div class="pos-spinner" style="width:16px;height:16px;border-width:2px"></div> Registrando…';
 
-        /* 1. Guardar en localStorage (fuente de verdad local) */
-        const ventas   = storageLoad();
-        const newVenta = {
-            id:      nextVentaId(ventas),
-            fecha:   today(),
-            hora:    nowTime(),
-            cliente: document.getElementById('chkCliente').value.trim(),
-            metodo:  checkout.metodo,
-            estado:  checkout.estado,
-            obs:     document.getElementById('chkObs').value.trim(),
-            total,
-            items,
-        };
-        ventas.unshift(newVenta);
-        storageSave(ventas);
-
-        /* 2. Notificar al módulo de ventas (si está montado) */
-        if (typeof window.VentasModuleRefresh === 'function') {
-            window.VentasModuleRefresh();
-        }
-
-        /* 3. Llamar a la API para descontar stock (best-effort) */
+        /* Llamar a la API para guardar en base de datos y descontar stock */
         try {
             const res = await fetch(API_SALE, {
                 method:  'POST',
                 headers: jsonHeaders(),
                 body:    JSON.stringify({
-                    items:  items.map(i => ({ product_id: i.product_id, qty: i.qty })),
-                    metodo: checkout.metodo,
-                    estado: checkout.estado,
+                    items:          items,
+                    cliente:        document.getElementById('chkCliente').value.trim(),
+                    metodo_pago:    checkout.metodo,
+                    estado:         checkout.estado,
+                    observaciones:  document.getElementById('chkObs').value.trim(),
                 }),
             });
 
             const data = await res.json();
             if (!res.ok) {
-                showToast(data.message || 'Stock no pudo descontarse en servidor', 'error');
+                showToast(data.message || 'Error al registrar la venta', 'error');
             } else {
                 const label = checkout.estado === 'pendiente' ? '🕐 Venta pendiente' : '✅ Venta registrada';
                 showToast(`${label} — ${formatMoney(total)}`, 'success');
+
+                /* Notificar al módulo de ventas (si está montado) para recargar desde BD */
+                if (typeof window.VentasModuleRefresh === 'function') {
+                    window.VentasModuleRefresh();
+                }
             }
-        } catch {
-            showToast('⚠️ Venta guardada localmente (sin conexión al servidor)', 'error');
+        } catch (e) {
+            console.error(e);
+            showToast('⚠️ Error de conexión con el servidor', 'error');
         }
 
-        /* 4. Limpiar carrito y recargar catálogo (stock actualizado) */
+        /* Limpiar carrito y recargar catálogo (stock actualizado) */
         state.cart = [];
         renderCart();
         updateBadge();

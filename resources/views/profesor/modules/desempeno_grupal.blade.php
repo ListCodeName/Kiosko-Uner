@@ -1,117 +1,62 @@
 {{-- MÓDULO: DESEMPEÑO GRUPAL – Profesor --}}
 
-{{-- Header con filtros --}}
+{{-- Header --}}
 <div class="perf-header">
     <h2 class="perf-title">Desempeño por Grupo</h2>
     <div class="perf-filters">
-        <select class="filter-select" id="perfGrpPeriod">
-            <option value="day">Hoy</option>
-            <option value="month" selected>Este mes</option>
-            <option value="year">Este año</option>
-        </select>
+        <div id="grpSummaryBadge" class="perf-ind-total-badge" style="display:none"></div>
     </div>
 </div>
 
-{{-- Groups performance grid --}}
-<div class="perf-grid">
+{{-- ═══════════════════════════════════════════════════════════
+     SECCIÓN: ESTADÍSTICA GLOBAL + PÓDIO
+     ═══════════════════════════════════════════════════════════ --}}
+<div id="grpGlobalSection" style="display:none">
 
-    {{-- Grupo A --}}
-    <div class="perf-card">
-        <div class="perf-card-header">
-            <span class="group-icon" style="font-size:1.4rem">🟢</span>
-            <div>
-                <div class="perf-card-name">Grupo A - Mañana</div>
-                <div class="perf-card-sub">6 alumnos</div>
-            </div>
+    {{-- Estadísticas globales --}}
+    <div class="grp-global-bar" id="grpGlobalBar"></div>
+
+    {{-- Pódio --}}
+    <div class="grp-podium-section">
+        <div class="grp-section-title">
+            <span>🏆</span> Pódio de Desempeño
+            <span class="grp-section-sub">Alumnos más destacados de todos los grupos</span>
         </div>
-        <div class="perf-bar-group">
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Asistencia promedio</span><span>89%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill blue" style="width:89%"></div></div>
+        <div class="grp-podium-grid">
+            {{-- Top Asistencia --}}
+            <div class="grp-podium-col">
+                <div class="grp-podium-col-header blue">
+                    <span>📅</span> Top Asistencia
+                </div>
+                <div class="grp-podium-list" id="podiumAtt"></div>
             </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Participación activa</span><span>82%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill green" style="width:82%"></div></div>
+            {{-- Top Actividad --}}
+            <div class="grp-podium-col">
+                <div class="grp-podium-col-header green">
+                    <span>⚡</span> Top Contribución
+                </div>
+                <div class="grp-podium-list" id="podiumAct"></div>
             </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Tareas completadas</span><span>86%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill purple" style="width:86%"></div></div>
-            </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Trabajo en equipo</span><span>84%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill yellow" style="width:84%"></div></div>
-            </div>
-        </div>
-        <div class="perf-score">
-            <div class="perf-score-value">85%</div>
-            <div class="perf-score-label">Puntaje grupal</div>
         </div>
     </div>
 
-    {{-- Grupo B --}}
-    <div class="perf-card">
-        <div class="perf-card-header">
-            <span class="group-icon" style="font-size:1.4rem">🔵</span>
-            <div>
-                <div class="perf-card-name">Grupo B - Tarde</div>
-                <div class="perf-card-sub">5 alumnos</div>
-            </div>
+    {{-- Alertas --}}
+    <div class="grp-alerts-section" id="grpAlertsSection" style="display:none">
+        <div class="grp-section-title">
+            <span>⚠️</span> Atención requerida
+            <span class="grp-section-sub">Alumnos por debajo de la media global</span>
         </div>
-        <div class="perf-bar-group">
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Asistencia promedio</span><span>78%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill blue" style="width:78%"></div></div>
-            </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Participación activa</span><span>71%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill green" style="width:71%"></div></div>
-            </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Tareas completadas</span><span>74%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill purple" style="width:74%"></div></div>
-            </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Trabajo en equipo</span><span>69%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill yellow" style="width:69%"></div></div>
-            </div>
-        </div>
-        <div class="perf-score">
-            <div class="perf-score-value">73%</div>
-            <div class="perf-score-label">Puntaje grupal</div>
-        </div>
+        <div class="grp-alerts-list" id="grpAlertsList"></div>
     </div>
 
-    {{-- Grupo C --}}
-    <div class="perf-card">
-        <div class="perf-card-header">
-            <span class="group-icon" style="font-size:1.4rem">🟡</span>
-            <div>
-                <div class="perf-card-name">Grupo C - Noche</div>
-                <div class="perf-card-sub">4 alumnos</div>
-            </div>
-        </div>
-        <div class="perf-bar-group">
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Asistencia promedio</span><span>92%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill blue" style="width:92%"></div></div>
-            </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Participación activa</span><span>88%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill green" style="width:88%"></div></div>
-            </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Tareas completadas</span><span>90%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill purple" style="width:90%"></div></div>
-            </div>
-            <div class="perf-bar-row">
-                <div class="perf-bar-label"><span>Trabajo en equipo</span><span>86%</span></div>
-                <div class="perf-bar-track"><div class="perf-bar-fill yellow" style="width:86%"></div></div>
-            </div>
-        </div>
-        <div class="perf-score">
-            <div class="perf-score-value">89%</div>
-            <div class="perf-score-label">Puntaje grupal</div>
-        </div>
-    </div>
+</div>
 
+{{-- ═══════════════════════════════════════════════════════════
+     SECCIÓN: TARJETAS POR GRUPO
+     ═══════════════════════════════════════════════════════════ --}}
+<div id="grpCardsGrid" class="grp-cards-grid">
+    {{-- Loaded dynamically --}}
+    <div class="perf-ind-empty" id="grpEmpty">
+        <div class="asist-spinner"></div>
+    </div>
 </div>

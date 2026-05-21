@@ -98,7 +98,7 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
 /* ── MODAL ── */
 .pmodal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(5px); }
 .pmodal-overlay.open { display:flex; }
-.pmodal { background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1.75rem;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:pmIn .22s ease; }
+.pmodal { background:#1a1d27;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1.75rem;width:100%;max-width: min(600px, 90dvw);box-shadow:0 20px 60px rgba(0,0,0,.6);animation:pmIn .22s ease; }
 @keyframes pmIn { from{opacity:0;transform:scale(.94) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
 .pmodal-title { font-size:1.05rem;font-weight:700;margin-bottom:1.1rem;color:#e8eaf0; }
 .pmodal-sub   { font-size:.87rem;color:#8990a8;margin-bottom:1.1rem;line-height:1.6; }
@@ -115,6 +115,37 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
 .ptipo-hint--reventa   { background:rgba(34,211,160,.08); color:#22d3a0; border:1px solid rgba(34,211,160,.2); }
 .ptipo-hint--insumo    { background:rgba(251,191,36,.08); color:#fbbf24; border:1px solid rgba(251,191,36,.2); }
 .ptipo-hint--elaborado { background:rgba(192,132,252,.08);color:#c084fc; border:1px solid rgba(192,132,252,.2); }
+
+/* ── Grupo row (solo reventa) ── */
+.pgrupo-row { display:flex;gap:.5rem;align-items:stretch;margin-bottom:1rem; }
+.pgrupo-row select { flex:1;margin-bottom:0; }
+.pbtn-grupo-new {
+    display:inline-flex;align-items:center;gap:.25rem;
+    padding:.5rem .75rem;border-radius:8px;border:1px solid rgba(34,211,160,.35);
+    background:rgba(34,211,160,.1);color:#22d3a0;font-size:.78rem;font-weight:600;
+    cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit;transition:all .18s;
+}
+.pbtn-grupo-new:hover { background:rgba(34,211,160,.22); }
+
+/* ── Mini-modal de grupo ── */
+.pmodal-mini-overlay {
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;
+    align-items:center;justify-content:center;backdrop-filter:blur(4px);
+}
+.pmodal-mini-overlay.open { display:flex; }
+.pmodal-mini {
+    background:#1e2130;border:1px solid rgba(34,211,160,.2);border-radius:12px;
+    padding:1.4rem;width:100%;max-width: min(390px, 90dvw);
+    box-shadow:0 16px 48px rgba(0,0,0,.7);animation:pmIn .2s ease;
+}
+.pmodal-mini-title { font-size:.95rem;font-weight:700;color:#22d3a0;margin-bottom:1rem; }
+.pmodal-mini input { width:100%;background:#0f1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.6rem .85rem;color:#e8eaf0;font-family:inherit;font-size:.9rem;outline:none;margin-bottom:.75rem;transition:border-color .2s; }
+.pmodal-mini input:focus { border-color:#22d3a0; }
+.pmodal-mini-footer { display:flex;gap:.5rem;justify-content:flex-end; }
+.pbtn-mini-confirm { background:linear-gradient(135deg,#22d3a0,#16a34a);color:#fff;border:none;padding:.45rem .9rem;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit; }
+.pbtn-mini-confirm:hover { opacity:.88; }
+.pbtn-mini-cancel  { background:rgba(255,255,255,.06);color:#8990a8;border:1px solid rgba(255,255,255,.1);padding:.45rem .9rem;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit; }
+.pbtn-mini-cancel:hover { background:rgba(255,255,255,.12); }
 
 .pmodal-row { display:grid;grid-template-columns:1fr 1fr;gap:.85rem; }
 .pmodal-footer { display:flex;gap:.65rem;justify-content:flex-end;margin-top:.5rem; }
@@ -242,9 +273,9 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
                 </td>
                 <td>
                     <div class="pactions">
-                        {{-- Editar (solo nombre, desc, tipo) --}}
+                        {{-- Editar (solo nombre, desc, tipo — y precio si es elaborado) --}}
                         <button class="pbtn pbtn-edit"
-                            onclick="openProdEdit({{ $product->id }},'{{ addslashes($product->name) }}','{{ addslashes($product->description ?? '') }}','{{ $product->tipo }}')">
+                            onclick="openProdEdit({{ $product->id }},'{{ addslashes($product->name) }}','{{ addslashes($product->description ?? '') }}','{{ $product->tipo }}',{{ (float)$product->price }},'{{ addslashes($product->category?->name ?? '') }}')">
                             ✏️ Editar
                         </button>
 
@@ -315,7 +346,7 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
             <input type="text" id="pn-name" name="name" required maxlength="255" placeholder="Ej: Coca-Cola 500ml, Harina 000, Pizza mozzarella…">
 
             <label for="pn-tipo">Tipo de producto</label>
-            <select id="pn-tipo" name="tipo" required onchange="updateTipoHint('pn-hint',this.value)">
+            <select id="pn-tipo" name="tipo" required onchange="updateTipoHint('pn-hint','pn-precio-row','pn-grupo-row',this.value)">
                 <option value="reventa">🛍️ Reventa — para vender tal cual se compra</option>
                 <option value="insumo">🧂 Insumo — materia prima para elaborar</option>
                 <option value="elaborado">🍕 Elaborado — producción propia para vender</option>
@@ -324,10 +355,31 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
                 🛍️ <strong>Reventa:</strong> El precio y stock se actualizan automáticamente cuando registrás una compra.
             </div>
 
+            {{-- Grupo: solo para reventa --}}
+            <div id="pn-grupo-row" style="margin-bottom:.6rem">
+                <label>Grupo / Categoría</label>
+                <div class="pgrupo-row">
+                    <select id="pn-grupo" name="grupo">
+                        <option value="">— Sin grupo —</option>
+                    </select>
+                    <button type="button" class="pbtn-grupo-new" onclick="abrirModalGrupo('pn-grupo')">
+                        ＋ Nuevo grupo
+                    </button>
+                </div>
+                <small style="color:#8990a8;font-size:.73rem;margin-bottom:.75rem;display:block">📦 Agrupá el producto en una categoría (golosinas, gaseosas, etc.)</small>
+            </div>
+
+            {{-- Campo precio: solo visible para tipo elaborado --}}
+            <div id="pn-precio-row" style="display:none">
+                <label for="pn-precio">Precio de venta ($)</label>
+                <input type="number" id="pn-precio" name="price" min="0" step="0.01" placeholder="Ej: 1500.00" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .8rem;color:#e2e8f0;font-size:.875rem;outline:none;" oninput="this.style.borderColor='#8b85ff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+                <small style="color:#8b85ff;font-size:.75rem;">💡 Precio fijado manualmente para elaborados.</small>
+            </div>
+
             <label for="pn-desc">Descripción (opcional)</label>
             <textarea id="pn-desc" name="description" maxlength="1000" placeholder="Descripción, presentación, variedad…"></textarea>
 
-            <div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.18);border-radius:8px;padding:.55rem .8rem;font-size:.78rem;color:#8b85ff;margin-bottom:1rem">
+            <div id="pn-info-auto" style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.18);border-radius:8px;padding:.55rem .8rem;font-size:.78rem;color:#8b85ff;margin-bottom:1rem">
                 ℹ️ El precio y stock <strong>no se cargan aquí</strong>. Se actualizan automáticamente al registrar compras o cargar unidades.
             </div>
 
@@ -349,12 +401,33 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
             <input type="text" id="pe-name" name="name" required maxlength="255">
 
             <label for="pe-tipo">Tipo</label>
-            <select id="pe-tipo" name="tipo" required onchange="updateTipoHint('pe-hint',this.value)">
+            <select id="pe-tipo" name="tipo" required onchange="updateTipoHint('pe-hint','pe-precio-row','pe-grupo-row',this.value)">
                 <option value="reventa">🛍️ Reventa</option>
                 <option value="insumo">🧂 Insumo</option>
                 <option value="elaborado">🍕 Elaborado</option>
             </select>
             <div class="ptipo-hint ptipo-hint--reventa" id="pe-hint" style="margin-bottom:.75rem"></div>
+
+            {{-- Grupo: solo para reventa --}}
+            <div id="pe-grupo-row" style="margin-bottom:.6rem;display:none">
+                <label>Grupo / Categoría</label>
+                <div class="pgrupo-row">
+                    <select id="pe-grupo" name="grupo">
+                        <option value="">— Sin grupo —</option>
+                    </select>
+                    <button type="button" class="pbtn-grupo-new" onclick="abrirModalGrupo('pe-grupo')">
+                        ＋ Nuevo grupo
+                    </button>
+                </div>
+                <small style="color:#8990a8;font-size:.73rem;margin-bottom:.75rem;display:block">📦 Agrupá el producto en una categoría</small>
+            </div>
+
+            {{-- Campo precio: solo visible para tipo elaborado --}}
+            <div id="pe-precio-row" style="display:none;margin-bottom:.75rem">
+                <label for="pe-precio">Precio de venta ($)</label>
+                <input type="number" id="pe-precio" name="price" min="0" step="0.01" placeholder="Ej: 1500.00" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .8rem;color:#e2e8f0;font-size:.875rem;outline:none;" oninput="this.style.borderColor='#8b85ff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+                <small style="color:#8b85ff;font-size:.75rem;">💡 Precio fijado manualmente para elaborados.</small>
+            </div>
 
             <label for="pe-desc">Descripción (opcional)</label>
             <textarea id="pe-desc" name="description" maxlength="1000"></textarea>
@@ -465,18 +538,40 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
     </div>
 </div>
 
+{{-- ══════════════════ MINI-MODAL: NUEVO GRUPO ══════════════════ --}}
+<div class="pmodal-mini-overlay" id="prodGrupoModal">
+    <div class="pmodal-mini">
+        <div class="pmodal-mini-title">📦 Nuevo Grupo / Categoría</div>
+        <input type="text" id="grupo-nombre-input" placeholder="Ej: Golosinas, Gaseosas, Galletitas…" maxlength="80">
+        <div class="pmodal-mini-footer">
+            <button class="pbtn-mini-cancel" onclick="cerrarModalGrupo()">Cancelar</button>
+            <button class="pbtn-mini-confirm" onclick="crearGrupo()">✅ Crear grupo</button>
+        </div>
+    </div>
+</div>
+
 <script>
 /* ── Tipo hints ── */
 const tipoHints = {
     reventa:   '🛍️ <strong>Reventa:</strong> El precio y stock se actualizan al registrar una compra.',
     insumo:    '🧂 <strong>Insumo:</strong> Materia prima para elaborar. No se controla stock.',
-    elaborado: '🍕 <strong>Elaborado:</strong> Cargás las unidades producidas manualmente y podés dar de baja los sobrantes.',
+    elaborado: '🍕 <strong>Elaborado:</strong> Cargás las unidades producidas manualmente. Podés fijar el precio de venta directamente aquí.',
 };
-function updateTipoHint(elId, tipo) {
+function updateTipoHint(elId, precioRowId, grupoRowId, tipo) {
     const el = document.getElementById(elId);
-    if (!el) return;
-    el.innerHTML = tipoHints[tipo] || '';
-    el.className = 'ptipo-hint ptipo-hint--' + tipo;
+    if (el) {
+        el.innerHTML = tipoHints[tipo] || '';
+        el.className = 'ptipo-hint ptipo-hint--' + tipo;
+    }
+    // Precio: solo elaborado
+    const precioRow = document.getElementById(precioRowId);
+    if (precioRow) precioRow.style.display = (tipo === 'elaborado') ? '' : 'none';
+    // Grupo: solo reventa
+    const grupoRow = document.getElementById(grupoRowId);
+    if (grupoRow) grupoRow.style.display = (tipo === 'reventa') ? '' : 'none';
+    // Nota de precios automáticos
+    const infoAuto = document.getElementById('pn-info-auto');
+    if (infoAuto) infoAuto.style.display = (tipo === 'elaborado') ? 'none' : '';
 }
 
 /* ── Filtro por tipo ── */
@@ -492,14 +587,14 @@ function prodFilterTipo(tipo, btn) {
 document.getElementById('prod-search-input').addEventListener('input', applyFilters);
 
 function applyFilters() {
-    const q    = document.getElementById('prod-search-input').value.toLowerCase();
+    const q    = document.getElementById('prod-search-input').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     let visible = 0;
     document.querySelectorAll('#prod-table tbody tr').forEach(r => {
         if (r.classList.contains('prod-sep') || r.classList.contains('prod-deleted')) {
             r.style.display = '';
             return;
         }
-        const name  = r.dataset.pname || '';
+        const name  = (r.dataset.pname || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const tipo  = r.dataset.tipo  || '';
         const matchSearch = name.includes(q);
         const matchTipo   = activeTipoFilter === 'all' || tipo === activeTipoFilter;
@@ -511,21 +606,87 @@ function applyFilters() {
     if (lbl) lbl.textContent = visible + ' producto' + (visible !== 1 ? 's' : '');
 }
 
+/* ── Grupos de productos (estado local) ── */
+let grupos = @json(\App\Models\ProductCategory::pluck('name')->toArray());
+if (!grupos || grupos.length === 0) {
+    grupos = [
+        'Golosinas', 'Gaseosas', 'Galletitas', 'Panadería', 'Lácteos',
+        'Bebidas', 'Snacks', 'Alfajores', 'Higiene', 'Otros'
+    ];
+}
+let _grupoTargetSelect = null; // id del select que dispara el mini-modal
+
+function renderGroupOptions(selectId, currentValue) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Sin grupo —</option>';
+    grupos.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g;
+        opt.textContent = '📦 ' + g;
+        if (g === currentValue) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+function abrirModalGrupo(selectId) {
+    _grupoTargetSelect = selectId;
+    document.getElementById('grupo-nombre-input').value = '';
+    const overlay = document.getElementById('prodGrupoModal');
+    overlay.classList.add('open');
+    setTimeout(() => document.getElementById('grupo-nombre-input').focus(), 80);
+}
+
+function cerrarModalGrupo() {
+    document.getElementById('prodGrupoModal').classList.remove('open');
+    _grupoTargetSelect = null;
+}
+
+function crearGrupo() {
+    const nombre = document.getElementById('grupo-nombre-input').value.trim();
+    if (!nombre) return;
+    // Capitalizar primera letra
+    const normalizado = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+    if (!grupos.includes(normalizado)) grupos.push(normalizado);
+    // Actualizar ambos selects
+    renderGroupOptions('pn-grupo', normalizado);
+    renderGroupOptions('pe-grupo', normalizado);
+    // Seleccionar en el select que disparó
+    if (_grupoTargetSelect) {
+        const sel = document.getElementById(_grupoTargetSelect);
+        if (sel) sel.value = normalizado;
+    }
+    cerrarModalGrupo();
+}
+
+// Tecla Escape cierra el mini-modal
+document.getElementById('grupo-nombre-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); crearGrupo(); }
+    if (e.key === 'Escape') cerrarModalGrupo();
+});
+
+// Poblar los selects de grupo al inicio
+renderGroupOptions('pn-grupo');
+renderGroupOptions('pe-grupo');
+
 /* ── Nuevo Producto ── */
 function openProdNew() {
     document.getElementById('prodNewForm').reset();
-    updateTipoHint('pn-hint', 'reventa');
+    renderGroupOptions('pn-grupo');
+    updateTipoHint('pn-hint', 'pn-precio-row', 'pn-grupo-row', 'reventa');
     window.openModal('prodNewModal');
     document.getElementById('pn-name').focus();
 }
 function closeProdNew() { window.closeModal('prodNewModal'); }
 
 /* ── Editar Producto ── */
-function openProdEdit(id, name, desc, tipo) {
-    document.getElementById('pe-name').value = name;
-    document.getElementById('pe-desc').value = desc;
-    document.getElementById('pe-tipo').value = tipo;
-    updateTipoHint('pe-hint', tipo);
+function openProdEdit(id, name, desc, tipo, precio, grupo) {
+    document.getElementById('pe-name').value  = name;
+    document.getElementById('pe-desc').value  = desc;
+    document.getElementById('pe-tipo').value  = tipo;
+    document.getElementById('pe-precio').value = (tipo === 'elaborado' && precio > 0) ? precio : '';
+    renderGroupOptions('pe-grupo', grupo || '');
+    updateTipoHint('pe-hint', 'pe-precio-row', 'pe-grupo-row', tipo);
     document.getElementById('prodEditForm').action = '/products/' + id;
     window.openModal('prodEditModal');
 }

@@ -68,14 +68,14 @@ const UserModule = (function () {
      * Renderizar la tabla de usuarios
      */
     function renderTable() {
-        const searchTerm = els.searchInput.value.toLowerCase();
+        const searchTerm = els.searchInput.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const roleFilter = els.filterSelect.value;
 
         const filtered = users.filter(u => {
-            const matchSearch = (u.nombre && u.nombre.toLowerCase().includes(searchTerm)) ||
-                                (u.apellido && u.apellido.toLowerCase().includes(searchTerm)) ||
+            const matchSearch = (u.nombre && u.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm)) ||
+                                (u.apellido && u.apellido.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm)) ||
                                 (u.dni && String(u.dni).includes(searchTerm)) ||
-                                (u.correo && u.correo.toLowerCase().includes(searchTerm));
+                                (u.correo && u.correo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm));
             const matchRole = roleFilter === '' || u.role === roleFilter;
             return matchSearch && matchRole;
         });

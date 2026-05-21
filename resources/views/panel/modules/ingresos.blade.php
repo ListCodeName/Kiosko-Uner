@@ -72,7 +72,7 @@
 
 {{-- ══════════════════ MODAL: CREAR / EDITAR INGRESO ══════════════════ --}}
 <div class="modal-overlay" id="ingresoFormModal">
-    <div class="modal" style="max-width:560px">
+    <div class="modal" style="max-width: min(650px, 90dvw);">
         <div class="modal-header">
             <h3 class="modal-title" id="ingresoModalTitle">📈 Nuevo Ingreso</h3>
             <button class="modal-close" id="ingresoModalClose">✕</button>
@@ -137,7 +137,7 @@
 
 {{-- ══════════════════ MODAL: ELIMINAR INGRESO ══════════════════ --}}
 <div class="modal-overlay" id="ingresoDeleteModal">
-    <div class="modal" style="max-width:440px">
+    <div class="modal" style="max-width: min(510px, 90dvw);">
         <div class="modal-header">
             <h3 class="modal-title">⚠️ Confirmar Eliminación</h3>
             <button class="modal-close" id="ingresoDelClose">✕</button>

@@ -70,10 +70,10 @@ Route::post('/logout', function (\Illuminate\Http\Request $request) {
 */
 Route::middleware(['auth', 'role:alumno'])->prefix('panel')->group(function () {
     Route::get('/', function () {
-        $products = \App\Models\Product::where('is_active', true)
+        $products = \App\Models\Product::with('category')->where('is_active', true)
             ->orderBy('name', 'asc')
             ->get();
-        $deletedProducts = \App\Models\Product::where('is_active', false)
+        $deletedProducts = \App\Models\Product::with('category')->where('is_active', false)
             ->orderBy('updated_at', 'desc')
             ->get();
         return view('panel.index', compact('products', 'deletedProducts'));
@@ -82,6 +82,21 @@ Route::middleware(['auth', 'role:alumno'])->prefix('panel')->group(function () {
     // Kiosco POS API
     Route::get('/api/kiosco/categories', [\App\Http\Controllers\Panel\KioscoController::class, 'categories']);
     Route::post('/api/kiosco/sale',      [\App\Http\Controllers\Panel\KioscoController::class, 'sale']);
+    Route::post('/api/kiosco/restore-stock', [\App\Http\Controllers\Panel\KioscoController::class, 'restoreStock']);
+
+    // Ventas API
+    Route::get('/api/ventas', [\App\Http\Controllers\Panel\KioscoController::class, 'getSales']);
+    Route::post('/api/ventas/{id}/efectivizar', [\App\Http\Controllers\Panel\KioscoController::class, 'efectivizar']);
+
+    // Pedidos & Entregas API
+    Route::get('/api/pedidos', [\App\Http\Controllers\Panel\PedidoController::class, 'index']);
+    Route::post('/api/pedidos', [\App\Http\Controllers\Panel\PedidoController::class, 'store']);
+    Route::put('/api/pedidos/{id}', [\App\Http\Controllers\Panel\PedidoController::class, 'update']);
+    Route::post('/api/pedidos/{id}/confirmar', [\App\Http\Controllers\Panel\PedidoController::class, 'confirm']);
+    Route::post('/api/pedidos/{id}/rechazar', [\App\Http\Controllers\Panel\PedidoController::class, 'reject']);
+    Route::post('/api/pedidos/{id}/reactivar', [\App\Http\Controllers\Panel\PedidoController::class, 'reactivate']);
+    Route::post('/api/pedidos/{id}/entregar', [\App\Http\Controllers\Panel\PedidoController::class, 'deliver']);
+    Route::delete('/api/pedidos/{id}', [\App\Http\Controllers\Panel\PedidoController::class, 'destroy']);
 
     // Productos API (búsqueda para autocompletado en compras)
     Route::get('/api/products/search',   [ProductController::class, 'search']);
@@ -125,7 +140,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->group(func
 | Proveedores – Lectura y escritura (cualquier usuario autenticado)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->prefix('superadmin')->group(function () {
+Route::middleware(['auth', 'role:alumno,superadmin'])->prefix('superadmin')->group(function () {
     Route::get('/proveedores',         [SuperAdminController::class, 'getProveedores']);
     Route::post('/proveedores',        [SuperAdminController::class, 'storeProveedor']);
     Route::put('/proveedores/{id}',    [SuperAdminController::class, 'updateProveedor']);
@@ -137,7 +152,7 @@ Route::middleware('auth')->prefix('superadmin')->group(function () {
 | Compras – Lectura y escritura (cualquier usuario autenticado)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->prefix('api')->group(function () {
+Route::middleware(['auth', 'role:alumno,superadmin'])->prefix('api')->group(function () {
     Route::get('/compras',         [SuperAdminController::class, 'getCompras']);
     Route::post('/compras',        [SuperAdminController::class, 'storeCompra']);
     Route::delete('/compras/{id}', [SuperAdminController::class, 'destroyCompra']);
@@ -177,6 +192,8 @@ Route::middleware(['auth', 'role:profesor'])->prefix('profesor')->group(function
     Route::get('/api/performance/individual',        [PerformanceController::class, 'individual']);
     Route::get('/api/performance/attendance-detail', [PerformanceController::class, 'attendanceDetail']);
     Route::get('/api/performance/activity-detail',   [PerformanceController::class, 'activityDetail']);
+    Route::get('/api/performance/grupal',            [PerformanceController::class, 'grupal']);
+    Route::get('/api/bitacora',                      [PerformanceController::class, 'bitacora']);
 });
 
 
@@ -203,7 +220,7 @@ Route::get('/showcase', function () {
 | Productos
 |--------------------------------------------------------------------------
 */
-Route::prefix('products')->name('products.')->group(function () {
+Route::middleware(['auth', 'role:alumno,superadmin'])->prefix('products')->name('products.')->group(function () {
     Route::get('/',                               [ProductController::class, 'index'])->name('index');
     Route::post('/',                              [ProductController::class, 'store'])->name('store');
     Route::get('/{product}/edit',                 [ProductController::class, 'edit'])->name('edit');

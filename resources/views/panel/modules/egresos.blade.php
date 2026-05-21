@@ -72,7 +72,7 @@
 
 {{-- ══════════════════ MODAL: CREAR / EDITAR EGRESO ══════════════════ --}}
 <div class="modal-overlay" id="egresoFormModal">
-    <div class="modal" style="max-width:560px">
+    <div class="modal" style="max-width: min(650px, 90dvw);">
         <div class="modal-header" style="border-bottom-color:rgba(239,68,68,0.2)">
             <h3 class="modal-title" id="egresoModalTitle">📉 Nuevo Egreso</h3>
             <button class="modal-close" id="egresoModalClose">✕</button>
@@ -137,7 +137,7 @@
 
 {{-- ══════════════════ MODAL: ELIMINAR EGRESO ══════════════════ --}}
 <div class="modal-overlay" id="egresoDeleteModal">
-    <div class="modal" style="max-width:440px">
+    <div class="modal" style="max-width: min(510px, 90dvw);">
         <div class="modal-header">
             <h3 class="modal-title">⚠️ Confirmar Eliminación</h3>
             <button class="modal-close" id="egresoDelClose">✕</button>

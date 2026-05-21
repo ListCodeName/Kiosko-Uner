@@ -40,6 +40,7 @@ class EgresoController extends Controller
         $data['user_id'] = Auth::id();
 
         $egreso = Egreso::create($data);
+        \App\Models\ActivityLog::log(Auth::id(), 'INSERT', 'Egresos', "Registró un egreso manual: {$egreso->descripcion} por \${$egreso->monto}");
 
         return response()->json([
             'message' => 'Egreso registrado exitosamente',
@@ -62,6 +63,7 @@ class EgresoController extends Controller
         ]);
 
         $egreso->update($data);
+        \App\Models\ActivityLog::log(Auth::id(), 'UPDATE', 'Egresos', "Actualizó el egreso: {$egreso->descripcion} por \${$egreso->monto}");
 
         return response()->json([
             'message' => 'Egreso actualizado correctamente',
@@ -74,7 +76,10 @@ class EgresoController extends Controller
      */
     public function destroy(Egreso $egreso)
     {
+        $descripcion = $egreso->descripcion;
+        $monto = $egreso->monto;
         $egreso->delete();
+        \App\Models\ActivityLog::log(Auth::id(), 'DELETE', 'Egresos', "Eliminó el egreso: {$descripcion} por \${$monto}");
 
         return response()->json([
             'message' => 'Egreso eliminado correctamente'

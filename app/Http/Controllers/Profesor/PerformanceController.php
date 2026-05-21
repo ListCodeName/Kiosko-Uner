@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Attendance;
 use App\Models\Group;
 use App\Models\User;
+use App\Models\GroupShift;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,33 +50,38 @@ class PerformanceController extends Controller
 
         // IDs de grupos del profesor para buscar asistencias
         $groupIds = $groups->pluck('id');
+        $allStudentIds = array_keys($studentsMap);
 
-        $students = collect(array_values($studentsMap))->map(function ($entry) use ($groupIds) {
+        // Asistencia por alumno (sobre todos los grupos del profesor) en una sola consulta
+        $attAll = Attendance::whereIn('group_id', $groupIds)
+            ->whereIn('student_id', $allStudentIds)
+            ->whereNotNull('present')
+            ->select('student_id', DB::raw('COUNT(*) as total'), DB::raw('SUM(present) as present_count'))
+            ->groupBy('student_id')
+            ->get()
+            ->keyBy('student_id');
+
+        // Actividad por alumno (Solo Contribuciones Cualificadas) en una sola consulta
+        $actAll = ActivityLog::whereIn('user_id', $allStudentIds)
+            ->contributions()
+            ->select('user_id', 'action', DB::raw('COUNT(*) as total'))
+            ->groupBy('user_id', 'action')
+            ->get()
+            ->groupBy('user_id');
+
+        $students = collect(array_values($studentsMap))->map(function ($entry) use ($attAll, $actAll) {
             $student = $entry['student'];
             $groupNames = $entry['groups'];
 
-            /* ── Asistencia (sobre todos los grupos del profesor) ── */
-            $attAll = Attendance::whereIn('group_id', $groupIds)
-                ->where('student_id', $student->id)
-                ->whereNotNull('present')
-                ->count();
+            /* ── Asistencia ── */
+            $att        = $attAll->get($student->id);
+            $attTotal   = $att ? (int) $att->total : 0;
+            $attPresent = $att ? (int) $att->present_count : 0;
+            $attendancePct = $attTotal > 0 ? round(($attPresent / $attTotal) * 100) : null;
 
-            $attPresent = Attendance::whereIn('group_id', $groupIds)
-                ->where('student_id', $student->id)
-                ->where('present', 1)
-                ->count();
-
-            $attendancePct = $attAll > 0
-                ? round(($attPresent / $attAll) * 100)
-                : null;
-
-            /* ── Actividad ─────────────────────────────────────── */
-            $activityCounts = ActivityLog::where('user_id', $student->id)
-                ->select('action', DB::raw('COUNT(*) as total'))
-                ->groupBy('action')
-                ->pluck('total', 'action')
-                ->toArray();
-
+            /* ── Actividad ── */
+            $studentLogs = $actAll->get($student->id, collect());
+            $activityCounts = $studentLogs->pluck('total', 'action')->toArray();
             $activityTotal = array_sum($activityCounts);
 
             return [
@@ -85,7 +91,7 @@ class PerformanceController extends Controller
                 'groups'           => $groupNames,
                 'attendance_pct'   => $attendancePct,
                 'att_present'      => $attPresent,
-                'att_total'        => $attAll,
+                'att_total'        => $attTotal,
                 'activity_total'   => $activityTotal,
                 'activity_by_type' => $activityCounts,
             ];
@@ -210,4 +216,234 @@ class PerformanceController extends Controller
             'recent'  => $recent,
         ]);
     }
+
+    /* ══════════════════════════════════════════════════════════
+     * GET /profesor/api/performance/grupal
+     *
+     * Devuelve TODOS los grupos del profesor con:
+     *  - Promedio grupal de asistencia y actividad
+     *  - Lista de miembros con sus métricas individuales
+     *  - Estadística global (media de todos los alumnos)
+     *  - Pódio: más destacado en asistencia y contribución
+     *  - Alertas: alumnos por debajo de la media global
+     * ══════════════════════════════════════════════════════════ */
+    public function grupal(Request $request)
+    {
+        $professorId = Auth::id();
+
+        $groups = Group::where('professor_id', $professorId)
+            ->with('students:id,name,username')
+            ->get();
+
+        if ($groups->isEmpty()) {
+            return response()->json([
+                'groups'       => [],
+                'global_stats' => null,
+                'podium'       => null,
+                'alerts'       => [],
+            ]);
+        }
+
+        // IDs de grupos del profesor
+        $allGroupIds = $groups->pluck('id');
+
+        // ── Construir mapa alumno → métricas (una sola consulta por alumno único) ──
+        $allStudentIds = $groups->flatMap(fn($g) => $g->students->pluck('id'))->unique()->values();
+
+        // Asistencia por alumno (sobre todos los grupos del profesor)
+        $attAll = Attendance::whereIn('group_id', $allGroupIds)
+            ->whereIn('student_id', $allStudentIds)
+            ->whereNotNull('present')
+            ->select('student_id', DB::raw('COUNT(*) as total'), DB::raw('SUM(present) as present_count'))
+            ->groupBy('student_id')
+            ->get()
+            ->keyBy('student_id');
+
+        // Turnos asignados por grupo
+        $shiftsByGroup = GroupShift::whereIn('group_id', $allGroupIds)->get()->groupBy('group_id');
+
+        // Cargar todas las contribuciones cualificadas en una sola consulta optimizada
+        $allLogs = ActivityLog::whereIn('user_id', $allStudentIds)
+            ->contributions()
+            ->get();
+
+        $logsByUser = $allLogs->groupBy('user_id');
+
+        // ── Construir respuesta por grupo ──
+        $groupsData = $groups->map(function ($group) use ($logsByUser, $shiftsByGroup, $attAll) {
+            $groupId = $group->id;
+            $shifts = $shiftsByGroup->get($groupId, collect());
+
+            $members = $group->students->map(function ($student) use ($logsByUser, $shifts, $attAll) {
+                $studentId = $student->id;
+
+                /* ── Asistencia ── */
+                $att        = $attAll->get($studentId);
+                $attTotal   = $att ? (int) $att->total : 0;
+                $attPresent = $att ? (int) $att->present_count : 0;
+                $attPct     = $attTotal > 0 ? round(($attPresent / $attTotal) * 100) : null;
+
+                /* ── Actividad ── */
+                $studentLogs = $logsByUser->get($studentId, collect());
+
+                // 1. activity_total: total de contribuciones cualificadas históricas del alumno
+                $activityTotal = $studentLogs->count();
+
+                // 2. group_activity_total: contribuciones cualificadas realizadas durante la guardia/semana de este grupo
+                if ($shifts->isEmpty()) {
+                    $groupActivityTotal = $activityTotal;
+                } else {
+                    $groupActivityTotal = $studentLogs->filter(function ($log) use ($shifts) {
+                        $logDate = $log->created_at->toDateString();
+                        return $shifts->contains(function ($shift) use ($logDate) {
+                            return $logDate >= $shift->start_date->toDateString() && $logDate <= $shift->end_date->toDateString();
+                        });
+                    })->count();
+                }
+
+                // 3. activity_by_type: desglose de todas sus contribuciones cualificadas históricas
+                $activityByType = $studentLogs->groupBy('action')->map(fn($g) => $g->count())->toArray();
+
+                return [
+                    'id'                   => $studentId,
+                    'name'                 => $student->name,
+                    'username'             => $student->username,
+                    'attendance_pct'       => $attPct,
+                    'att_present'          => $attPresent,
+                    'att_total'            => $attTotal,
+                    'activity_total'       => $activityTotal,
+                    'group_activity_total' => $groupActivityTotal,
+                    'activity_by_type'     => $activityByType,
+                ];
+            })->values();
+
+            // Promedio grupal: promedio de asistencia y promedio de actividad EN SU TURNO (group_activity_total)
+            $attValues  = $members->whereNotNull('attendance_pct')->pluck('attendance_pct');
+            $actValues  = $members->pluck('group_activity_total');
+
+            $avgAtt = $attValues->count() > 0 ? round($attValues->avg()) : null;
+            $avgAct = $actValues->count() > 0 ? round($actValues->avg()) : null;
+
+            return [
+                'id'                 => $group->id,
+                'name'               => $group->name,
+                'member_count'       => $members->count(),
+                'members'            => $members,
+                'avg_attendance_pct' => $avgAtt,
+                'avg_activity'       => $avgAct,
+            ];
+        })->values();
+
+        // ── Pódio y alertas (sobre todos los alumnos únicos del profesor) ──
+        $flatMembers = [];
+        foreach ($groupsData as $groupData) {
+            foreach ($groupData['members'] as $member) {
+                $studentId = $member['id'];
+                if (!isset($flatMembers[$studentId])) {
+                    $flatMembers[$studentId] = [
+                        'id'                   => $member['id'],
+                        'name'                 => $member['name'],
+                        'username'             => $member['username'],
+                        'attendance_pct'       => $member['attendance_pct'],
+                        'att_present'          => $member['att_present'],
+                        'att_total'            => $member['att_total'],
+                        'activity_total'       => $member['activity_total'],
+                        'group_activity_total' => $member['group_activity_total'],
+                        'activity_by_type'     => $member['activity_by_type'],
+                        'groups'               => [$groupData['name']],
+                    ];
+                } else {
+                    $flatMembers[$studentId]['groups'][] = $groupData['name'];
+                }
+            }
+        }
+        $flatMembers = array_values($flatMembers);
+
+        // Estadística global (media de todos los alumnos únicos)
+        $allAtt = collect($flatMembers)->whereNotNull('attendance_pct')->pluck('attendance_pct');
+        $allAct = collect($flatMembers)->pluck('activity_total'); // media global basada en actividad total histórica
+
+        $globalAvgAtt = $allAtt->count() > 0 ? round($allAtt->avg()) : null;
+        $globalAvgAct = $allAct->count() > 0 ? round($allAct->avg()) : null;
+
+        // Top en asistencia (con datos, ordenados desc)
+        $byAtt = collect($flatMembers)->whereNotNull('attendance_pct')->sortByDesc('attendance_pct')->values();
+        // Top en actividad (basado en contribuciones cualificadas totales para premiar la colaboración)
+        $byAct = collect($flatMembers)->sortByDesc('activity_total')->values();
+
+        $podium = [
+            'top_attendance'    => $byAtt->take(3)->values(),
+            'top_activity'      => $byAct->take(3)->values(),
+        ];
+
+        // Alertas: por debajo de la media en asistencia o en actividad global
+        $alerts = collect($flatMembers)->filter(function ($m) use ($globalAvgAtt, $globalAvgAct) {
+            $attBelow = $globalAvgAtt !== null && $m['attendance_pct'] !== null && $m['attendance_pct'] < $globalAvgAtt;
+            $actBelow = $globalAvgAct !== null && $m['activity_total'] < $globalAvgAct;
+            return $attBelow || $actBelow;
+        })->map(function ($m) use ($globalAvgAtt, $globalAvgAct) {
+            $reasons = [];
+            if ($globalAvgAtt !== null && $m['attendance_pct'] !== null && $m['attendance_pct'] < $globalAvgAtt) {
+                $reasons[] = 'asistencia';
+            }
+            if ($globalAvgAct !== null && $m['activity_total'] < $globalAvgAct) {
+                $reasons[] = 'actividad';
+            }
+            return array_merge($m, ['alert_reasons' => $reasons]);
+        })->values();
+
+        return response()->json([
+            'groups'       => $groupsData,
+            'global_stats' => [
+                'avg_attendance_pct' => $globalAvgAtt,
+                'avg_activity'       => $globalAvgAct,
+                'total_students'     => count($flatMembers),
+            ],
+            'podium'       => $podium,
+            'alerts'       => $alerts,
+        ]);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+     * GET /profesor/api/bitacora
+     *
+     * Devuelve el historial completo de logs de actividades de los
+     * alumnos que pertenecen a los grupos a cargo del profesor logueado.
+     * ══════════════════════════════════════════════════════════ */
+    public function bitacora(Request $request)
+    {
+        $professorId = Auth::id();
+
+        // Obtener los IDs de los alumnos bajo el cargo del profesor en sus grupos
+        $studentIds = DB::table('group_user')
+            ->join('groups', 'groups.id', '=', 'group_user.group_id')
+            ->where('groups.professor_id', $professorId)
+            ->pluck('group_user.user_id')
+            ->unique();
+
+        // Consultar la tabla de logs de actividades filtrando por esos alumnos
+        $logs = ActivityLog::whereIn('user_id', $studentIds)
+            ->with('user:id,name,username,role')
+            ->orderBy('created_at', 'desc')
+            ->limit(200) // limitar a los últimos 200 para optimización
+            ->get()
+            ->map(function ($l) {
+                return [
+                    'id'          => $l->id,
+                    'user_id'     => $l->user_id,
+                    'user_name'   => $l->user ? $l->user->name : 'Usuario Desconocido',
+                    'user_role'   => $l->user ? $l->user->role : 'alumno',
+                    'action'      => $l->action,
+                    'module'      => $l->module,
+                    'description' => $l->description,
+                    'created_at'  => $l->created_at ? $l->created_at->toIso8601String() : null,
+                    'time_ago'    => $l->created_at ? $l->created_at->diffForHumans() : '',
+                ];
+            });
+
+        return response()->json([
+            'logs' => $logs
+        ]);
+    }
 }
+

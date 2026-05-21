@@ -42,13 +42,13 @@
         const container = document.getElementById('groupsContainer');
         if (!container) return;
         
-        const searchTerm = document.getElementById('groupSearch').value.toLowerCase();
+        const searchTerm = document.getElementById('groupSearch').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         
         let html = '';
         
         const filteredGroups = state.groups.filter(g => 
-            g.name.toLowerCase().includes(searchTerm) || 
-            (g.description && g.description.toLowerCase().includes(searchTerm))
+            g.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm) || 
+            (g.description && g.description.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(searchTerm))
         );
 
         if (filteredGroups.length === 0) {

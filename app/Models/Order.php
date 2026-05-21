@@ -4,15 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Sale extends Model
+class Order extends Model
 {
     protected $fillable = [
         'user_id',
         'cliente',
-        'total',
-        'metodo_pago',
+        'fecha',
+        'hora',
+        'hora_entrega',
         'estado',
-        'observaciones',
+        'total',
     ];
 
     protected $casts = [
@@ -28,6 +29,6 @@ class Sale extends Model
 
     public function items()
     {
-        return $this->hasMany(SaleItem::class);
+        return $this->hasMany(OrderItem::class);
     }
 }

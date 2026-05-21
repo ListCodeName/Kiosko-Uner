@@ -94,7 +94,7 @@
      MODAL: CHECKOUT — Método de pago y estado
 ══════════════════════════════════════════════════════ --}}
 <div class="modal-overlay" id="posCheckoutModal">
-    <div class="modal" style="max-width:480px">
+    <div class="modal" style="max-width: min(550px, 90dvw);">
         <div class="modal-header">
             <h3 class="modal-title">💳 Confirmar Venta</h3>
             <button class="modal-close">✕</button>

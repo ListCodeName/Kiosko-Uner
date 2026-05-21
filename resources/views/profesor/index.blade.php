@@ -68,6 +68,11 @@
                 <span class="nav-label">Económico</span>
             </button>
 
+            <button class="nav-item" data-module="bitacora" data-title="Bitácora de Actividades" data-badge="Auditoría" data-tooltip="Bitácora">
+                <span class="nav-icon">📖</span>
+                <span class="nav-label">Bitácora</span>
+            </button>
+
         </nav>
 
         <div class="sidebar-footer">
@@ -124,6 +129,9 @@
             <section class="module-section" data-module-content="desempeno-economico">
                 @include('profesor.modules.desempeno_economico')
             </section>
+            <section class="module-section" data-module-content="bitacora">
+                @include('profesor.modules.bitacora')
+            </section>
         </main>
     </div>
 
@@ -136,7 +144,8 @@
 <script src="{{ asset('js/profesor/grupos.js') }}"></script>
 <script src="{{ asset('js/profesor/asistencia.js') }}"></script>
 <script src="{{ asset('js/profesor/desempeno_individual.js') }}"></script>
-
+<script src="{{ asset('js/profesor/desempeno_grupal.js') }}"></script>
+<script src="{{ asset('js/profesor/bitacora.js') }}"></script>
 <script src="{{ asset('js/profesor/usuarios.js') }}"></script>
 </body>
 </html>

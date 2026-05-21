@@ -63,7 +63,7 @@
      MODAL: CONFIRMAR PAGO (Efectivizar venta pendiente)
 ══════════════════════════════════════════════════════ --}}
 <div class="modal-overlay" id="vtPayModal">
-    <div class="modal" style="max-width:440px">
+    <div class="modal" style="max-width: min(510px, 90dvw);">
         <div class="modal-header" style="border-bottom-color:rgba(251,191,36,.2)">
             <h3 class="modal-title">💰 Confirmar Pago</h3>
             <button class="modal-close">✕</button>
@@ -95,7 +95,7 @@
      MODAL: DEVOLVER VENTA
 ══════════════════════════════════════════════════════ --}}
 <div class="modal-overlay" id="vtReturnModal">
-    <div class="modal" style="max-width:440px">
+    <div class="modal" style="max-width: min(510px, 90dvw);">
         <div class="modal-header" style="border-bottom-color:rgba(168,85,247,.25)">
             <h3 class="modal-title">↩️ Devolver Venta</h3>
             <button class="modal-close">✕</button>
@@ -309,9 +309,6 @@
 (function () {
     'use strict';
 
-    /* ── Clave compartida con kiosco.js ── */
-    const STORAGE_KEY = 'kiosko_ventas';
-
     let ventasData = [];
     let loaded     = false;
 
@@ -320,16 +317,18 @@
     let fMetodo = '';
     let fFecha  = '';
 
-    /* ── Persistencia ── */
-    function storageLoad() {
+    /* ── Persistencia desde el servidor ── */
+    async function loadSalesFromServer() {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            ventasData = raw ? JSON.parse(raw) : [];
-        } catch (e) { ventasData = []; }
-    }
-
-    function storageSave() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ventasData)); } catch (e) {}
+            const res = await fetch('/panel/api/ventas');
+            if (res.ok) {
+                ventasData = await res.json();
+                render();
+            }
+        } catch (e) {
+            console.error('Error al cargar ventas:', e);
+            toast('⚠️ Error al conectar con el servidor', 'error');
+        }
     }
 
     /* ── Helpers ── */
@@ -472,19 +471,33 @@
         window.openModal('vtPayModal');
     };
 
-    document.getElementById('vtPayForm')?.addEventListener('submit', function (e) {
+    document.getElementById('vtPayForm')?.addEventListener('submit', async function (e) {
         e.preventDefault();
         const id     = parseInt(document.getElementById('vt-pay-id').value);
         const metodo = document.getElementById('vt-pay-metodo').value;
-        const idx    = ventasData.findIndex(x => x.id === id);
-        if (idx !== -1) {
-            ventasData[idx].estado = 'pagado';
-            ventasData[idx].metodo = metodo;
+
+        try {
+            const res = await fetch(`/panel/api/ventas/${id}/efectivizar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ metodo_pago: metodo })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                toast('✅ Pago confirmado exitosamente');
+                await loadSalesFromServer();
+            } else {
+                toast('❌ Error: ' + (data.message || 'no se pudo registrar'), 'error');
+            }
+        } catch (error) {
+            toast('⚠️ Error de conexión con el servidor', 'error');
         }
-        storageSave();
+
         window.closeModal('vtPayModal');
-        render();
-        toast('✅ Pago confirmado exitosamente');
     });
 
     /* ── Devolver venta ── */
@@ -500,23 +513,32 @@
         window.openModal('vtReturnModal');
     };
 
-    document.getElementById('vtReturnForm')?.addEventListener('submit', function (e) {
+    document.getElementById('vtReturnForm')?.addEventListener('submit', async function (e) {
         e.preventDefault();
         const id  = parseInt(document.getElementById('vt-return-id').value);
-        const v   = ventasData.find(x => x.id === id);
 
-        if (v) {
-            /* Reintegrar stock en kiosco si la función está disponible */
-            if (typeof window.KioscoRestoreStock === 'function') {
-                window.KioscoRestoreStock(v.items);
+        try {
+            const res = await fetch('/panel/api/kiosco/restore-stock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ sale_id: id })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                toast('↩️ Venta devuelta — stock restablecido');
+                await loadSalesFromServer();
+            } else {
+                toast('❌ Error: ' + (data.message || 'no se pudo realizar la devolución'), 'error');
             }
-            ventasData = ventasData.filter(x => x.id !== id);
-            storageSave();
+        } catch (error) {
+            toast('⚠️ Error de conexión con el servidor', 'error');
         }
 
         window.closeModal('vtReturnModal');
-        render();
-        toast('↩️ Venta devuelta — stock restablecido');
     });
 
     /* ── Filtros ── */
@@ -534,9 +556,8 @@
     /* ── Carga inicial con MutationObserver ── */
     function load() {
         if (loaded) return;
-        storageLoad();
+        loadSalesFromServer();
         loaded = true;
-        render();
     }
 
     /* Refrescar al volver al módulo (por si se registraron ventas en kiosco) */
@@ -544,9 +565,8 @@
     if (section) {
         new MutationObserver(() => {
             if (section.classList.contains('active')) {
-                storageLoad(); // siempre releer al activar
+                loadSalesFromServer(); // siempre releer al activar
                 loaded = true;
-                render();
             }
         }).observe(section, { attributes: true, attributeFilter: ['class'] });
         if (section.classList.contains('active')) load();
@@ -554,8 +574,7 @@
 
     /* API pública para que kiosco.js notifique nuevas ventas sin recargar la página */
     window.VentasModuleRefresh = function () {
-        storageLoad();
-        render();
+        loadSalesFromServer();
     };
 
 })();

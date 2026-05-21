@@ -688,7 +688,10 @@ body {
     border: 1px solid var(--border-mid);
     border-radius: var(--radius-lg);
     width: 100%;
-    max-width: 540px;
+    max-width: min(620px, 90dvw);
+    max-height: min(90dvh, 760px);
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 40px rgba(45,140,255,0.08);
     animation: modal-in 0.2s ease;
     overflow: hidden;
@@ -731,6 +734,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    overflow-y: auto;
 }
 
 .modal-footer {

@@ -8,7 +8,9 @@ use App\Models\Personnel;
 use App\Models\Product;
 use App\Models\Proveedor;
 use App\Models\User;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -426,6 +428,25 @@ class SuperAdminController extends Controller
                 }
             }
 
+            // Crear automáticamente el Egreso contable
+            \App\Models\Egreso::create([
+                'fecha'       => $validated['fecha'],
+                'tipo'        => 'insumos',
+                'descripcion' => "Compra mercadería #{$compra->id}",
+                'monto'       => $total,
+                'estado'      => 'efectuado',
+                'detalle'     => "Compra registrada para abastecimiento de stock. Observaciones: " . ($validated['observaciones'] ?? 'Ninguna'),
+                'user_id'     => Auth::id(),
+            ]);
+
+            // Registrar actividad
+            ActivityLog::log(
+                Auth::id(),
+                'INSERT',
+                'Compras',
+                "Registró una compra de mercadería #{$compra->id} por \${$total}"
+            );
+
             DB::commit();
 
             $compra->load('items');
@@ -481,7 +502,19 @@ class SuperAdminController extends Controller
                 }
             }
 
+            // Eliminar automáticamente el Egreso contable correspondiente
+            \App\Models\Egreso::where('descripcion', "Compra mercadería #{$compra->id}")->delete();
+
+            $total = $compra->total;
             $compra->delete(); // cascade elimina compra_items
+
+            // Registrar actividad
+            ActivityLog::log(
+                Auth::id(),
+                'DELETE',
+                'Compras',
+                "Eliminó la compra de mercadería #{$id} por \${$total}"
+            );
 
             DB::commit();
 

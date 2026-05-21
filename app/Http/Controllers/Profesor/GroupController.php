@@ -127,18 +127,19 @@ class GroupController extends Controller
      */
     public function searchStudents(Request $request)
     {
-        $query = User::where('role', 'alumno');
+        $students = User::where('role', 'alumno')
+            ->select('id', 'name', 'username')
+            ->get();
 
         if ($request->filled('q')) {
-            $search = $request->input('q');
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
-            });
+            $search = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($request->input('q')));
+            $students = $students->filter(function($student) use ($search) {
+                $name = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($student->name));
+                $username = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($student->username));
+                return str_contains($name, $search) || str_contains($username, $search);
+            })->values();
         }
 
-        $students = $query->select('id', 'name', 'username')->limit(20)->get();
-
-        return response()->json($students);
+        return response()->json($students->take(20));
     }
 }

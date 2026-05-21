@@ -40,6 +40,7 @@ class IngresoController extends Controller
         $data['user_id'] = Auth::id();
 
         $ingreso = Ingreso::create($data);
+        \App\Models\ActivityLog::log(Auth::id(), 'INSERT', 'Ingresos', "Registró un ingreso manual: {$ingreso->descripcion} por \${$ingreso->monto}");
 
         return response()->json([
             'message' => 'Ingreso registrado exitosamente',
@@ -62,6 +63,7 @@ class IngresoController extends Controller
         ]);
 
         $ingreso->update($data);
+        \App\Models\ActivityLog::log(Auth::id(), 'UPDATE', 'Ingresos', "Actualizó el ingreso: {$ingreso->descripcion} por \${$ingreso->monto}");
 
         return response()->json([
             'message' => 'Ingreso actualizado correctamente',
@@ -74,7 +76,10 @@ class IngresoController extends Controller
      */
     public function destroy(Ingreso $ingreso)
     {
+        $descripcion = $ingreso->descripcion;
+        $monto = $ingreso->monto;
         $ingreso->delete();
+        \App\Models\ActivityLog::log(Auth::id(), 'DELETE', 'Ingresos', "Eliminó el ingreso: {$descripcion} por \${$monto}");
 
         return response()->json([
             'message' => 'Ingreso eliminado correctamente'
