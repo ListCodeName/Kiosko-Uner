@@ -290,7 +290,7 @@
 .ac-dropdown {
     position:absolute; bottom:calc(100% + 6px); left:0; right:0; z-index:10000;
     background:#131b2e; border:1px solid rgba(255,255,255,.12); border-radius:10px;
-    max-height:200px; overflow-y:auto; display:none;
+    height: 125px; max-height:200px; overflow-y:auto; display:none;
     box-shadow:0 -6px 24px rgba(0,0,0,.45);
     margin: 0; padding: 0; list-style: none;
 }
