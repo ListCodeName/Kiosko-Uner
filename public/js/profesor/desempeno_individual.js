@@ -235,7 +235,7 @@
 
         document.getElementById('attDetailTitle').textContent = `Asistencia – ${studentName}`;
         document.getElementById('attDetailSub').textContent   = 'Navegá mes a mes para ver el registro de asistencia';
-        document.getElementById('modalAttendanceDetail').classList.add('visible');
+        openModal('modalAttendanceDetail');
 
         fetchMonthAttendance();
     }
@@ -327,7 +327,7 @@
     async function openActivityDetail(studentId, studentName) {
         document.getElementById('actDetailTitle').textContent = `Participación – ${studentName}`;
         document.getElementById('actDetailSub').textContent   = 'Registro de ingresos y acciones en el sistema';
-        document.getElementById('modalActivityDetail').classList.add('visible');
+        openModal('modalActivityDetail');
 
         document.getElementById('actDetailLoading').style.display = 'flex';
         document.getElementById('actDetailContent').style.display = 'none';
@@ -417,11 +417,6 @@
         document.getElementById('attMonthPrev')?.addEventListener('click', () => navigateMonth(-1));
         document.getElementById('attMonthNext')?.addEventListener('click', () => navigateMonth(1));
 
-        // Cerrar modales al clickear overlay
-        ['modalAttendanceDetail', 'modalActivityDetail'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.remove('visible'); });
-        });
     });
 
 })();

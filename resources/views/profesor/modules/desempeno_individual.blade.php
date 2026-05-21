@@ -27,7 +27,7 @@
                 <h3 class="modal-title" id="attDetailTitle">Asistencia detallada</h3>
                 <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px" id="attDetailSub"></div>
             </div>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+            <button type="button" class="modal-close" onclick="closeModal('modalAttendanceDetail')">✕</button>
         </div>
         <div class="modal-body">
 
@@ -80,7 +80,7 @@
                 <h3 class="modal-title" id="actDetailTitle">Participación activa</h3>
                 <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px" id="actDetailSub"></div>
             </div>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+            <button type="button" class="modal-close" onclick="closeModal('modalActivityDetail')">✕</button>
         </div>
         <div class="modal-body">
 

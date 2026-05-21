@@ -121,7 +121,7 @@
         openCreateModal: () => {
             document.getElementById('createGroupName').value = '';
             document.getElementById('createGroupDesc').value = '';
-            document.getElementById('groupCreateModal').classList.add('visible');
+            openModal('groupCreateModal');
         },
         
         openEditModal: (id) => {
@@ -131,7 +131,7 @@
             document.getElementById('editGroupId').value = group.id;
             document.getElementById('editGroupName').value = group.name;
             document.getElementById('editGroupDesc').value = group.description || '';
-            document.getElementById('groupEditModal').classList.add('visible');
+            openModal('groupEditModal');
         },
 
         deleteGroup: async (id) => {
@@ -156,7 +156,7 @@
             document.getElementById('addMemberGroupId').value = id;
             document.getElementById('studentSearchInput').value = '';
             document.getElementById('studentSelectList').innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 1rem;">Escribe para buscar alumnos...</div>`;
-            document.getElementById('groupAddMemberModal').classList.add('visible');
+            openModal('groupAddMemberModal');
             
             // Cargar estudiantes sin filtro inicialmente
             searchStudents('');
@@ -204,7 +204,7 @@
                     });
                     if (!res.ok) throw new Error('Error al crear grupo');
                     
-                    document.getElementById('groupCreateModal').classList.remove('visible');
+                    closeModal('groupCreateModal');
                     showToast('Grupo creado correctamente', 'success');
                     fetchGroups();
                 } catch (error) {
@@ -239,7 +239,7 @@
                     });
                     if (!res.ok) throw new Error('Error al editar grupo');
                     
-                    document.getElementById('groupEditModal').classList.remove('visible');
+                    closeModal('groupEditModal');
                     showToast('Grupo actualizado correctamente', 'success');
                     fetchGroups();
                 } catch (error) {
@@ -293,7 +293,7 @@
 
                     await Promise.all(promises);
                     
-                    document.getElementById('groupAddMemberModal').classList.remove('visible');
+                    closeModal('groupAddMemberModal');
                     showToast('Alumno(s) agregado(s) con éxito', 'success');
                     fetchGroups();
                 } catch (error) {

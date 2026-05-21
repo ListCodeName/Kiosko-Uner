@@ -111,7 +111,7 @@ const UserModule = (function () {
         els.password.required = true;
         els.passwordHelp.style.display = 'none';
         els.username.disabled = false;
-        els.createModal.classList.add('visible');
+        openModal('userCreateModal');
     }
 
     function openEditModal(id) {
@@ -134,13 +134,13 @@ const UserModule = (function () {
         els.passwordHelp.style.display = 'block';
         els.username.disabled = true;
 
-        els.createModal.classList.add('visible');
+        openModal('userCreateModal');
     }
 
     function openPasswordModal(id) {
         els.pwdForm.reset();
         els.pwdId.value = id;
-        els.passwordModal.classList.add('visible');
+        openModal('userPasswordModal');
     }
 
     /**
@@ -180,7 +180,7 @@ const UserModule = (function () {
 
             if (response.ok) {
                 showToast(data.message);
-                els.createModal.classList.remove('visible');
+                closeModal('userCreateModal');
                 loadUsers();
             } else {
                 // Parse validation errors if available
@@ -217,7 +217,7 @@ const UserModule = (function () {
 
             if (response.ok) {
                 showToast(data.message);
-                els.passwordModal.classList.remove('visible');
+                closeModal('userPasswordModal');
             } else {
                 showToast(data.message || 'Error al actualizar contraseña', true);
             }

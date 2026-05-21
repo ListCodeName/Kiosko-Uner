@@ -35,7 +35,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title" id="userModalTitle">Nuevo Usuario</h3>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+            <button type="button" class="modal-close" onclick="closeModal('userCreateModal')">✕</button>
         </div>
         <form class="modal-body" id="userForm" onsubmit="event.preventDefault(); UserModule.saveUser();">
             <input type="hidden" id="userId">
@@ -82,7 +82,7 @@
                 </select>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('visible')">Cancelar</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('userCreateModal')">Cancelar</button>
                 <button type="submit" class="btn-submit">Guardar</button>
             </div>
         </form>
@@ -94,7 +94,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">Cambiar Contraseña</h3>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+            <button type="button" class="modal-close" onclick="closeModal('userPasswordModal')">✕</button>
         </div>
         <form class="modal-body" id="userPasswordForm" onsubmit="event.preventDefault(); UserModule.savePassword();">
             <input type="hidden" id="pwdUserId">
@@ -103,7 +103,7 @@
                 <input class="form-input" type="password" id="newPassword" required placeholder="Mínimo 4 caracteres" minlength="4">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('visible')">Cancelar</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('userPasswordModal')">Cancelar</button>
                 <button type="submit" class="btn-submit">Actualizar Contraseña</button>
             </div>
         </form>

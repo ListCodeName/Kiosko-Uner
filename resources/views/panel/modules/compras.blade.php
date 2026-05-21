@@ -32,7 +32,7 @@
 <div class="prov-toast" id="comprasToast"></div>
 
 {{-- ══════════════════ MODAL: NUEVA COMPRA ══════════════════ --}}
-<div class="modal-overlay" id="compraCreateModal">
+<div class="modal-overlay" id="compraCreateModal" style="display: none !important;">
     <div class="modal" style="max-width:640px">
         <div class="modal-header">
             <h3 class="modal-title">🛒 Nueva Compra</h3>
@@ -84,7 +84,7 @@
 </div>
 
 {{-- ══════════════════ MODAL: ELIMINAR ══════════════════ --}}
-<div class="modal-overlay" id="compraDeleteModal">
+<div class="modal-overlay" id="compraDeleteModal" style="display: none !important;">
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">Confirmar Eliminación</h3>
@@ -92,8 +92,12 @@
         </div>
         <form class="modal-body" id="compraDeleteForm">
             <input type="hidden" id="compra-del-id">
-            <p style="color:var(--text-secondary);font-size:.88rem;margin-bottom:8px">¿Estás seguro de que querés eliminar la compra del:</p>
-            <p style="color:#ef4444;font-weight:700;font-size:1rem;margin-bottom:16px" id="compra-del-fecha"></p>
+            <p style="color:var(--text-secondary);font-size:.88rem;margin-bottom:8px">¿Estás seguro de que querés eliminar la compra de la fecha:</p>
+            <p style="color:#ef4444;font-weight:700;font-size:1rem;margin-bottom:8px" id="compra-del-fecha"></p>
+            <p style="color:var(--text-primary);font-size:0.9rem;margin-bottom:16px">
+                <strong>Productos incluidos:</strong><br>
+                <span id="compra-del-productos" style="color:var(--text-secondary);"></span>
+            </p>
             <p style="color:var(--text-muted);font-size:.8rem">Esta acción eliminará también todos sus productos. No se puede deshacer.</p>
             <div class="modal-footer" style="margin-top:16px">
                 <button type="button" class="btn-cancel" id="compraDelCancel">Cancelar</button>
@@ -279,7 +283,7 @@
         if (fechaInput) fechaInput.value = today;
         document.getElementById('compraModalTotal').textContent = '$0,00';
         addItemRow(); // Fila inicial
-        openModal('compraCreateModal');
+        // openModal('compraCreateModal'); // TEMPORALMENTE SUPRIMIDO POR SOLICITUD
     });
 
     /* Submit nueva compra */
@@ -315,7 +319,12 @@
         if (!c) return;
         document.getElementById('compra-del-id').value = id;
         document.getElementById('compra-del-fecha').textContent = c.fecha;
-        openModal('compraDeleteModal');
+        
+        const prodNames = c.items.map(i => i.producto_nombre).join(', ');
+        const elProductos = document.getElementById('compra-del-productos');
+        if (elProductos) elProductos.textContent = prodNames || 'Ninguno';
+
+        // openModal('compraDeleteModal'); // TEMPORALMENTE SUPRIMIDO POR SOLICITUD
     };
 
     document.getElementById('compraDeleteForm')?.addEventListener('submit', async e => {

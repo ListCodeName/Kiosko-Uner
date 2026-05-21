@@ -19,7 +19,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">Nuevo Grupo</h3>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+            <button type="button" class="modal-close" onclick="closeModal('groupCreateModal')">✕</button>
         </div>
         <form class="modal-body" id="groupCreateForm">
             <div class="form-group">
@@ -31,7 +31,7 @@
                 <input class="form-input" id="createGroupDesc" placeholder="Breve descripción del grupo">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('visible')">Cancelar</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('groupCreateModal')">Cancelar</button>
                 <button type="submit" class="btn-submit" id="btnCreateGroupSubmit">Crear Grupo</button>
             </div>
         </form>
@@ -43,7 +43,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">Editar Grupo</h3>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+            <button type="button" class="modal-close" onclick="closeModal('groupEditModal')">✕</button>
         </div>
         <form class="modal-body" id="groupEditForm">
             <input type="hidden" id="editGroupId">
@@ -56,7 +56,7 @@
                 <input class="form-input" id="editGroupDesc">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('visible')">Cancelar</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('groupEditModal')">Cancelar</button>
                 <button type="submit" class="btn-submit" id="btnEditGroupSubmit">Guardar Cambios</button>
             </div>
         </form>
@@ -68,7 +68,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">Agregar Alumno al Grupo</h3>
-            <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">✕</button>
+            <button type="button" class="modal-close" onclick="closeModal('groupAddMemberModal')">✕</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="addMemberGroupId">
@@ -83,7 +83,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="this.closest('.modal-overlay').classList.remove('visible')">Cancelar</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('groupAddMemberModal')">Cancelar</button>
                 <button type="button" class="btn-submit" id="btnAddMemberSubmit">Confirmar</button>
             </div>
         </div>
