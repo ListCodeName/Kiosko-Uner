@@ -131,17 +131,9 @@
     if (filterRole) filterRole.addEventListener('change', applyFilters);
 
     // ── Modal helpers ─────────────────────────────────────────
-    function openModal(id) { document.getElementById(id)?.classList.add('visible'); }
-    function closeModal(id) { document.getElementById(id)?.classList.remove('visible'); }
+    function openModal(id) { window.openModal(id); }
+    function closeModal(id) { window.closeModal(id); }
     function resetForm(id) { document.getElementById(id)?.reset(); }
-
-    // Close modals on overlay click
-    document.querySelectorAll('.modal-overlay').forEach(o => {
-        o.addEventListener('click', e => { if (e.target === o) o.classList.remove('visible'); });
-    });
-    document.querySelectorAll('.modal-close, .btn-cancel').forEach(b => {
-        b.addEventListener('click', () => b.closest('.modal-overlay')?.classList.remove('visible'));
-    });
 
     // ── CREATE ────────────────────────────────────────────────
     document.getElementById('btnNewPersonnel')?.addEventListener('click', () => {

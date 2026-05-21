@@ -52,7 +52,7 @@
         <h3 class="modal-title">¿Está seguro?</h3>
         <p class="modal-desc">Esta acción confirmará el pedido y lo eliminará de la lista.</p>
         <div class="modal-actions">
-            <button class="btn btn-cancel" onclick="cerrarModal('modalConfirmar')">Cancelar</button>
+            <button class="btn btn-cancel" onclick="window.closeModal('modalConfirmar')">Cancelar</button>
             <button class="btn btn-confirm" id="btnSiConfirmar" onclick="confirmarPedido()">Sí, confirmar</button>
         </div>
     </div>
@@ -63,7 +63,7 @@
 ══════════════════════════════════ --}}
 <div class="modal-overlay" id="modalDescripcion" style="display:none">
     <div class="modal-card modal-card--wide">
-        <button class="modal-close" onclick="cerrarModal('modalDescripcion')">✕</button>
+        <button class="modal-close" onclick="window.closeModal('modalDescripcion')">✕</button>
         <h3 class="modal-title">📄 Descripción del Pedido</h3>
         <div class="desc-meta">
             <span class="desc-meta-item">👤 <strong id="descCliente">—</strong></span>
@@ -86,7 +86,7 @@
 ══════════════════════════════════ --}}
 <div class="modal-overlay" id="modalForm" style="display:none">
     <div class="modal-card modal-card--wide">
-        <button class="modal-close" onclick="cerrarModal('modalForm')">✕</button>
+        <button class="modal-close" onclick="window.closeModal('modalForm')">✕</button>
         <h3 class="modal-title" id="modalFormTitle">＋ Nuevo Pedido</h3>
         <input type="hidden" id="formPedidoId">
         <div class="form-group">
@@ -101,7 +101,7 @@
             <button class="btn btn-add-producto" onclick="agregarFilaProducto()">＋ Agregar producto</button>
         </div>
         <div class="modal-actions">
-            <button class="btn btn-cancel" onclick="cerrarModal('modalForm')">Cancelar</button>
+            <button class="btn btn-cancel" onclick="window.closeModal('modalForm')">Cancelar</button>
             <button class="btn btn-confirm" onclick="guardarPedido()">Guardar</button>
         </div>
     </div>
@@ -179,7 +179,7 @@
 
 /* ── Modales ── */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px);
-    display:flex; align-items:center; justify-content:center; z-index:9999;
+    display:none; align-items:center; justify-content:center; z-index:9999;
     animation:fadeIn .2s ease; }
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 .modal-card { background:#0f1523; border:1px solid rgba(255,255,255,.1); border-radius:16px;
@@ -356,7 +356,7 @@ function abrirModalAnadir() {
     document.getElementById('formProductosContainer').innerHTML = '';
     document.getElementById('modalFormTitle').textContent = '＋ Nuevo Pedido';
     agregarFilaProducto();
-    document.getElementById('modalForm').style.display = 'flex';
+    window.openModal('modalForm');
 }
 
 function actualizarScrollProductos() {
@@ -496,7 +496,7 @@ function guardarPedido() {
     } else {
         pedidos.push({id:nextId++, cliente, estado:'pending', fecha, hora, productos});
     }
-    cerrarModal('modalForm');
+    window.closeModal('modalForm');
     renderTabla();
 }
 
@@ -511,7 +511,7 @@ function modificarPedidoSeleccionado() {
     document.getElementById('formProductosContainer').innerHTML = '';
     document.getElementById('modalFormTitle').textContent = '✏️ Modificar Pedido';
     p.productos.forEach(pr => agregarFilaProducto(pr.nombre, pr.precio));
-    document.getElementById('modalForm').style.display = 'flex';
+    window.openModal('modalForm');
 }
 
 // ── Eliminar (por checkbox) ──────────────────────────────
@@ -527,7 +527,7 @@ function eliminarPedidoSeleccionado() {
 // ── Confirmar pedido (👍) ────────────────────────────────
 function abrirModalConfirmar(id) {
     pedidoAConfirmar = id;
-    document.getElementById('modalConfirmar').style.display = 'flex';
+    window.openModal('modalConfirmar');
 }
 function confirmarPedido() {
     const p = pedidos.find(x=>x.id === pedidoAConfirmar);
@@ -540,7 +540,7 @@ function confirmarPedido() {
         pedidos = pedidos.filter(x=>x.id !== pedidoAConfirmar);
     }
     pedidoAConfirmar = null;
-    cerrarModal('modalConfirmar');
+    window.closeModal('modalConfirmar');
     renderTabla();
 }
 
@@ -562,17 +562,11 @@ function abrirModalDescripcion(id) {
         lista.appendChild(li);
     });
     document.getElementById('descTotal').textContent = '$' + total.toLocaleString('es-AR');
-    document.getElementById('modalDescripcion').style.display = 'flex';
+    window.openModal('modalDescripcion');
 }
 
 
-// ── Cerrar modal ─────────────────────────────────────────
-function cerrarModal(id) {
-    document.getElementById(id).style.display = 'none';
-}
-document.querySelectorAll('.modal-overlay').forEach(m => {
-    m.addEventListener('click', e => { if(e.target===m) cerrarModal(m.id); });
-});
+// El cierre se maneja mediante el modal-manager global
 
 // ── Iniciar ──────────────────────────────────────────────
 renderTabla();

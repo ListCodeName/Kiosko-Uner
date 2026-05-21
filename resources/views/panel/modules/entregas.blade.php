@@ -20,9 +20,9 @@
 </div>
 
 {{-- ══ MODAL EXPANDIR ENTREGA (crema) ══ --}}
-<div class="modal-overlay" id="modalEntregaExpand" style="display:none" onclick="if(event.target===this) cerrarModalEntrega()">
+<div class="modal-overlay" id="modalEntregaExpand" style="display:none" onclick="if(event.target===this) window.closeModal('modalEntregaExpand')">
     <div class="emodal-card">
-        <button class="emodal-close" onclick="cerrarModalEntrega()">✕</button>
+        <button class="emodal-close modal-close" onclick="window.closeModal('modalEntregaExpand')">✕</button>
         <div class="emodal-stripe"></div>
 
         <div class="emodal-header">
@@ -135,7 +135,7 @@
 
 /* ══ Modal expandir entrega (crema) ══ */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px);
-    display:flex; align-items:center; justify-content:center; z-index:9999; animation:fadeInE .2s ease; }
+    display:none; align-items:center; justify-content:center; z-index:9999; animation:fadeInE .2s ease; }
 @keyframes fadeInE{from{opacity:0}to{opacity:1}}
 
 .emodal-card {
@@ -267,11 +267,11 @@ function expandirEntrega(id) {
         lista.appendChild(li);
     });
 
-    document.getElementById('modalEntregaExpand').style.display = 'flex';
+    window.openModal('modalEntregaExpand');
 }
 
 function cerrarModalEntrega() {
-    document.getElementById('modalEntregaExpand').style.display = 'none';
+    window.closeModal('modalEntregaExpand');
 }
 
 // Render inicial

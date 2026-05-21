@@ -159,22 +159,7 @@
         setTimeout(() => t.classList.remove('visible'), 3200);
     }
 
-    /* ── Modal helpers ── */
-    function openModal(id)  { document.getElementById(id)?.classList.add('visible'); }
-    function closeModal(id) { document.getElementById(id)?.classList.remove('visible'); }
 
-    document.querySelectorAll('#provCreateModal .modal-close, #provCreateModal .btn-cancel').forEach(b =>
-        b.addEventListener('click', () => closeModal('provCreateModal')));
-    document.querySelectorAll('#provEditModal .modal-close, #provEditModal .btn-cancel').forEach(b =>
-        b.addEventListener('click', () => closeModal('provEditModal')));
-    document.querySelectorAll('#provDeleteModal .modal-close, #provDeleteModal .btn-cancel').forEach(b =>
-        b.addEventListener('click', () => closeModal('provDeleteModal')));
-
-    ['provCreateModal','provEditModal','provDeleteModal'].forEach(id => {
-        document.getElementById(id)?.addEventListener('click', e => {
-            if (e.target === e.currentTarget) closeModal(id);
-        });
-    });
 
     /* ── Render & Ordenar ── */
     function sortData() {
@@ -256,7 +241,7 @@
     /* ── CREATE ── */
     document.getElementById('btnNewProveedor')?.addEventListener('click', () => {
         document.getElementById('provCreateForm')?.reset();
-        openModal('provCreateModal');
+        window.openModal('provCreateModal');
     });
 
     document.getElementById('provCreateForm')?.addEventListener('submit', async e => {
@@ -265,7 +250,7 @@
         try {
             const data = await api('/superadmin/proveedores', 'POST', body);
             toast(data.message);
-            closeModal('provCreateModal');
+            window.closeModal('provCreateModal');
             proveedoresData.push(data.proveedor);
             sortData();
             loaded = true;
@@ -286,7 +271,7 @@
         document.getElementById('prov-edit-telefono').value  = p.telefono  || '';
         document.getElementById('prov-edit-correo').value    = p.correo    || '';
         document.getElementById('prov-edit-direccion').value = p.direccion || '';
-        openModal('provEditModal');
+        window.openModal('provEditModal');
     };
 
     document.getElementById('provEditForm')?.addEventListener('submit', async e => {
@@ -298,7 +283,7 @@
         try {
             const data = await api(`/superadmin/proveedores/${id}`, 'PUT', body);
             toast(data.message);
-            closeModal('provEditModal');
+            window.closeModal('provEditModal');
             const idx = proveedoresData.findIndex(x => x.id == id);
             if (idx !== -1) proveedoresData[idx] = { ...proveedoresData[idx], ...body };
             sortData();
@@ -314,7 +299,7 @@
         if (!p) return;
         document.getElementById('prov-del-id').value = p.id;
         document.getElementById('prov-del-name').textContent = p.nombre;
-        openModal('provDeleteModal');
+        window.openModal('provDeleteModal');
     };
 
     document.getElementById('provDeleteForm')?.addEventListener('submit', async e => {
@@ -323,7 +308,7 @@
         try {
             const data = await api(`/superadmin/proveedores/${id}`, 'DELETE');
             toast(data.message);
-            closeModal('provDeleteModal');
+            window.closeModal('provDeleteModal');
             
             // Marcar como borrado
             const idx = proveedoresData.findIndex(x => x.id == id);

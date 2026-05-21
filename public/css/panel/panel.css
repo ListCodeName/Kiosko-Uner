@@ -1469,3 +1469,206 @@ body {
         width:100%;min-width:100%;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   MÓDULOS: INGRESOS & EGRESOS
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Summary bar ── */
+.mov-summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Badge verde (ingresos) */
+.summary-badge.highlight-green {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+}
+
+/* Badge rojo (egresos) */
+.summary-badge.highlight-red {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+/* ── Filtros ── */
+.mov-filter-wrap {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mov-filter-select {
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color var(--transition), color var(--transition), box-shadow var(--transition);
+    min-width: 140px;
+}
+.mov-filter-select:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--blue-glow);
+    color: var(--text-primary);
+}
+.mov-filter-select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* ── Badge de estado ── */
+.mov-estado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.estado-efectuado {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+}
+
+.estado-pendiente {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+}
+
+/* ── Badge de tipo / categoría ── */
+.mov-tipo-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+.mov-tipo-ingreso {
+    background: rgba(45, 140, 255, 0.1);
+    border: 1px solid rgba(45, 140, 255, 0.2);
+    color: var(--blue-light);
+}
+
+.mov-tipo-egreso {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* ── Botones temáticos ── */
+.btn-ingreso-add {
+    border-color: rgba(34, 197, 94, 0.4) !important;
+    color: #22c55e !important;
+}
+.btn-ingreso-add:hover {
+    background: rgba(34, 197, 94, 0.15) !important;
+    color: #4ade80 !important;
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.25) !important;
+}
+
+.btn-egreso-add {
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #f87171 !important;
+}
+.btn-egreso-add:hover {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #fca5a5 !important;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* ── Botón submit variantes ── */
+.btn-submit-green {
+    background: linear-gradient(135deg, #15803d, #22c55e) !important;
+}
+.btn-submit-green:hover {
+    background: linear-gradient(135deg, #166534, #4ade80) !important;
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.35) !important;
+}
+
+.btn-submit-red {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+}
+.btn-submit-red:hover {
+    background: linear-gradient(135deg, #b91c1c, #f87171) !important;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.35) !important;
+}
+
+/* ── Fila de tabla ── */
+.mov-row {
+    transition: background var(--transition);
+}
+.mov-row:hover {
+    background: var(--bg-hover);
+}
+
+/* ── Preview de eliminación ── */
+.mov-del-preview {
+    background: var(--bg-input);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mov-del-detail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    gap: 12px;
+}
+
+.mov-del-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+}
+
+/* ── Textarea en modal ── */
+.form-input[rows] {
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .mov-filter-wrap {
+        width: 100%;
+    }
+    .mov-filter-select {
+        flex: 1;
+        min-width: 120px;
+    }
+    .mov-summary {
+        width: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+    .mov-tipo-badge,
+    .mov-estado-badge { font-size: 0.68rem; padding: 3px 7px; }
+}

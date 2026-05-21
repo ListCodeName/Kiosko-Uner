@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Compra;
 use App\Models\CompraItem;
 use App\Models\Personnel;
+use App\Models\Product;
 use App\Models\Proveedor;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -339,6 +340,7 @@ class SuperAdminController extends Controller
 
     /**
      * Get all compras with their items.
+     * Incluye tipo_producto para cada ítem.
      */
     public function getCompras()
     {
@@ -355,7 +357,9 @@ class SuperAdminController extends Controller
                     'observaciones' => $c->observaciones,
                     'items'         => $c->items->map(fn($i) => [
                         'id'              => $i->id,
+                        'product_id'      => $i->product_id,
                         'producto_nombre' => $i->producto_nombre,
+                        'tipo_producto'   => $i->tipo_producto,
                         'cantidad'        => (float) $i->cantidad,
                         'precio_unitario' => (float) $i->precio_unitario,
                         'subtotal'        => round((float)$i->cantidad * (float)$i->precio_unitario, 2),
@@ -370,40 +374,56 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Store a new compra with its items.
+     * Store a new compra con su lógica de stock diferencial por tipo:
+     *   - reventa   → suma cantidad al stock y actualiza precio del producto.
+     *   - insumo    → solo registra el ítem, no toca inventario.
+     *   - elaborado → no aplica; los elaborados se cargan manualmente.
      */
     public function storeCompra(Request $request)
     {
         $validated = $request->validate([
-            'fecha'                     => 'required|date',
-            'observaciones'             => 'nullable|string|max:500',
-            'items'                     => 'required|array|min:1',
-            'items.*.producto_nombre'   => 'required|string|max:150',
-            'items.*.cantidad'          => 'required|numeric|min:0.01',
-            'items.*.precio_unitario'   => 'required|numeric|min:0',
+            'fecha'                       => 'required|date',
+            'observaciones'               => 'nullable|string|max:500',
+            'items'                       => 'required|array|min:1',
+            'items.*.product_id'          => 'nullable|integer|exists:products,id',
+            'items.*.producto_nombre'     => 'required|string|max:150',
+            'items.*.tipo_producto'       => 'required|in:reventa,insumo,elaborado',
+            'items.*.cantidad'            => 'required|numeric|min:0.01',
+            'items.*.precio_unitario'     => 'required|numeric|min:0',
         ]);
 
         try {
             DB::beginTransaction();
 
-            // Calcular total
             $total = collect($validated['items'])->sum(
                 fn($i) => $i['cantidad'] * $i['precio_unitario']
             );
 
             $compra = Compra::create([
-                'fecha'          => $validated['fecha'],
-                'total'          => $total,
-                'observaciones'  => $validated['observaciones'] ?? null,
+                'fecha'         => $validated['fecha'],
+                'total'         => $total,
+                'observaciones' => $validated['observaciones'] ?? null,
             ]);
 
             foreach ($validated['items'] as $item) {
                 CompraItem::create([
-                    'compra_id'        => $compra->id,
-                    'producto_nombre'  => $item['producto_nombre'],
-                    'cantidad'         => $item['cantidad'],
-                    'precio_unitario'  => $item['precio_unitario'],
+                    'compra_id'       => $compra->id,
+                    'product_id'      => $item['product_id'] ?? null,
+                    'producto_nombre' => $item['producto_nombre'],
+                    'tipo_producto'   => $item['tipo_producto'],
+                    'cantidad'        => $item['cantidad'],
+                    'precio_unitario' => $item['precio_unitario'],
                 ]);
+
+                // Solo reventa actualiza stock y precio en el producto
+                if ($item['tipo_producto'] === 'reventa' && !empty($item['product_id'])) {
+                    $product = Product::find($item['product_id']);
+                    if ($product) {
+                        $product->stock += (int) $item['cantidad'];
+                        $product->price  = $item['precio_unitario'];
+                        $product->save();
+                    }
+                }
             }
 
             DB::commit();
@@ -421,7 +441,9 @@ class SuperAdminController extends Controller
                     'observaciones' => $compra->observaciones,
                     'items'         => $compra->items->map(fn($i) => [
                         'id'              => $i->id,
+                        'product_id'      => $i->product_id,
                         'producto_nombre' => $i->producto_nombre,
+                        'tipo_producto'   => $i->tipo_producto,
                         'cantidad'        => (float) $i->cantidad,
                         'precio_unitario' => (float) $i->precio_unitario,
                         'subtotal'        => round((float)$i->cantidad * (float)$i->precio_unitario, 2),
@@ -439,16 +461,41 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * Delete a compra (and cascade its items).
+     * Elimina una compra y revierte el stock de los ítems de tipo 'reventa'.
      */
     public function destroyCompra($id)
     {
-        $compra = Compra::findOrFail($id);
-        $compra->delete();
+        $compra = Compra::with('items')->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Compra eliminada correctamente.',
-        ]);
+        try {
+            DB::beginTransaction();
+
+            // Revertir stock de los ítems reventa
+            foreach ($compra->items as $item) {
+                if ($item->tipo_producto === 'reventa' && $item->product_id) {
+                    $product = Product::find($item->product_id);
+                    if ($product) {
+                        $product->stock = max(0, $product->stock - (int) $item->cantidad);
+                        $product->save();
+                    }
+                }
+            }
+
+            $compra->delete(); // cascade elimina compra_items
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Compra eliminada y stock revertido correctamente.',
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la compra: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

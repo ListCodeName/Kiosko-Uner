@@ -34,27 +34,7 @@
     const saved = localStorage.getItem('prof-active-module');
     activateModule(saved || 'inicio');
 
-    // ── Global Modal Methods ─────────────────────────
-    window.openModal = function(idOrElement) {
-        const modal = typeof idOrElement === 'string' ? document.getElementById(idOrElement) : idOrElement;
-        if (modal) modal.classList.add('visible');
-    };
-
-    window.closeModal = function(idOrElement) {
-        const modal = typeof idOrElement === 'string' ? document.getElementById(idOrElement) : idOrElement;
-        if (modal) modal.classList.remove('visible');
-    };
-
-    // ── Close modals on overlay and close buttons click ─────────────────────────
-    document.querySelectorAll('.modal-overlay').forEach(o => {
-        o.addEventListener('click', e => { if(e.target === o) window.closeModal(o); });
-    });
-    document.querySelectorAll('.modal-close, .btn-cancel').forEach(b => {
-        b.addEventListener('click', () => {
-            const overlay = b.closest('.modal-overlay');
-            if (overlay) window.closeModal(overlay);
-        });
-    });
+    // Modales gestionados por el modal-manager global
 
     // ── Toast ─────────────────────────────────────────────────
     window.showToast = function(msg, type='success') {

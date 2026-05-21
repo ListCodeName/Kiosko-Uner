@@ -131,6 +131,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="{{ asset('js/modal-manager.js') }}"></script>
 <script src="{{ asset('js/profesor/profesor.js') }}"></script>
 <script src="{{ asset('js/profesor/grupos.js') }}"></script>
 <script src="{{ asset('js/profesor/asistencia.js') }}"></script>

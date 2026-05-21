@@ -114,6 +114,7 @@
 {{-- Toast --}}
 <div class="toast" id="toast"></div>
 
+<script src="{{ asset('js/modal-manager.js') }}"></script>
 <script src="{{ asset('js/superadmin/superadmin.js') }}"></script>
 </body>
 </html>

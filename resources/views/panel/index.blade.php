@@ -277,6 +277,7 @@
 
 </div>{{-- /.panel-layout --}}
 
+<script src="{{ asset('js/modal-manager.js') }}"></script>
 <script src="{{ asset('js/panel/panel.js') }}"></script>
 <script src="{{ asset('js/panel/kiosco.js') }}"></script>
 </body>

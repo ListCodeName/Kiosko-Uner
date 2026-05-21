@@ -82,6 +82,14 @@ Route::middleware(['auth', 'role:alumno'])->prefix('panel')->group(function () {
     // Kiosco POS API
     Route::get('/api/kiosco/categories', [\App\Http\Controllers\Panel\KioscoController::class, 'categories']);
     Route::post('/api/kiosco/sale',      [\App\Http\Controllers\Panel\KioscoController::class, 'sale']);
+
+    // Productos API (búsqueda para autocompletado en compras)
+    Route::get('/api/products/search',   [ProductController::class, 'search']);
+    Route::post('/api/products',         [ProductController::class, 'quickCreate']);
+
+    // Elaborados: carga manual de unidades y baja de sobrantes
+    Route::post('/api/products/{product}/cargar-unidades', [ProductController::class, 'apiCargarUnidades']);
+    Route::post('/api/products/{product}/baja-sobrantes',  [ProductController::class, 'apiBajaElaborados']);
 });
 
 /*
@@ -180,7 +188,7 @@ Route::get('/showcase', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Productos (Sergio - aguilarsergio2302-ui)
+| Productos
 |--------------------------------------------------------------------------
 */
 Route::prefix('products')->name('products.')->group(function () {
@@ -189,6 +197,7 @@ Route::prefix('products')->name('products.')->group(function () {
     Route::get('/{product}/edit',                 [ProductController::class, 'edit'])->name('edit');
     Route::put('/{product}',                      [ProductController::class, 'update'])->name('update');
     Route::delete('/{product}',                   [ProductController::class, 'destroy'])->name('destroy');
-    Route::patch('/{product}/stock',              [ProductController::class, 'updateStock'])->name('updateStock');
     Route::patch('/{product}/restore',            [ProductController::class, 'restore'])->name('restore');
+    Route::post('/{product}/cargar-unidades',     [ProductController::class, 'cargarUnidades'])->name('cargarUnidades');
+    Route::post('/{product}/baja-sobrantes',      [ProductController::class, 'bajaElaborados'])->name('bajaElaborados');
 });
