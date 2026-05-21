@@ -886,7 +886,7 @@ body {
 /* Grid de tarjetas */
 .compras-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
     gap: 18px;
     width: 100%;
 }
@@ -898,6 +898,9 @@ body {
     border-radius: var(--radius-lg);
     padding: 0;
     overflow: hidden;
+    min-width: 340px;
+    max-width: 700px;
+    width: 100%;
     transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
     display: flex;
     flex-direction: column;
@@ -916,6 +919,7 @@ body {
     padding: 14px 16px 12px;
     border-bottom: 1px solid var(--border-dim);
     background: var(--bg-card);
+    flex-shrink: 0;
 }
 
 .compra-card-date {
@@ -927,7 +931,7 @@ body {
     color: var(--text-white);
 }
 
-.compra-date-icon { font-size: 1rem; }
+.compra-date-icon { font-size: 1rem; flex-shrink: 0; }
 
 /* Observaciones */
 .compra-obs {
@@ -935,35 +939,71 @@ body {
     font-size: 0.8rem;
     color: var(--text-muted);
     font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Lista de items dentro de la tarjeta */
+/* ─────────────────────────────────────────
+   TABLA DE ITEMS
+   Columnas: Producto | Cant. | P.Unit | Sub
+   ───────────────────────────────────────── */
 .compra-items-list {
-    padding: 12px 16px;
+    padding: 10px 16px 12px;
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
+    overflow-x: auto;
 }
 
+/* Layout de fila: grid de 4 columnas con anchos fijos */
+.compra-items-head,
+.compra-item-row {
+    display: grid;
+    /* Producto      Cant.           P.Unit.          Subtotal */
+    grid-template-columns:
+        minmax(80px, 1fr)
+        minmax(40px, 52px)
+        minmax(68px, 88px)
+        minmax(68px, 88px);
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Cabecera */
 .compra-items-head {
-    display: flex;
-    gap: 8px;
-    font-size: 0.68rem;
+    font-size: 0.67rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.6px;
     color: var(--text-muted);
     padding-bottom: 6px;
     border-bottom: 1px solid var(--border-dim);
+    flex-shrink: 0;
 }
+.compra-items-head span:nth-child(1) { text-align: left; }
+.compra-items-head span:nth-child(2) { text-align: center; }
+.compra-items-head span:nth-child(3) { text-align: right; }
+.compra-items-head span:nth-child(4) { text-align: right; }
 
+/* Fila de ítem */
 .compra-item-row {
+    font-size: 0.82rem;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(30,42,58,0.45);
+}
+.compra-item-row:last-child { border-bottom: none; }
+
+/* Columna – Nombre */
+.compra-col-name {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    padding: 4px 0;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0; /* permite que el ellipsis funcione */
+    overflow: hidden;
 }
 
 .compra-item-name {
@@ -972,6 +1012,39 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: block;
+    max-width: 100%;
+}
+
+/* Columna – Cantidad */
+.compra-col-qty {
+    text-align: center;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
+}
+
+/* Columna – Precio unitario */
+.compra-col-price {
+    text-align: right;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.80rem;
+}
+
+/* Columna – Subtotal */
+.compra-col-sub {
+    text-align: right;
+    color: var(--blue-light);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
 }
 
 /* Footer de tarjeta */
@@ -1059,11 +1132,25 @@ body {
     color: var(--blue-neon);
 }
 
-/* Responsive compras */
+/* ── Responsive compras ── */
 @media (max-width: 640px) {
-    .compras-grid { grid-template-columns: 1fr; }
+    .compras-grid {
+        grid-template-columns: 1fr;
+    }
+    .compra-card {
+        min-width: 0;
+        max-width: 100%;
+    }
     .compra-items-head { display: none; }
-    .compra-item-row { flex-wrap: wrap; }
+    .compra-item-row {
+        grid-template-columns: minmax(0, 1fr) minmax(44px, 52px);
+        grid-template-rows: auto auto;
+        row-gap: 2px;
+    }
+    .compra-col-name  { grid-column: 1 / 2; grid-row: 1; }
+    .compra-col-qty   { grid-column: 2 / 3; grid-row: 1; text-align: right; }
+    .compra-col-price { grid-column: 1 / 2; grid-row: 2; font-size: 0.74rem; color: var(--text-muted); }
+    .compra-col-sub   { grid-column: 2 / 3; grid-row: 2; font-size: 0.82rem; }
 }
 
 /* ══════════════════════════════════════════════════════════════

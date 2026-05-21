@@ -264,22 +264,22 @@
 
                 <div class="compra-items-list">
                     <div class="compra-items-head">
-                        <span style="flex:1">Producto</span>
-                        <span style="width:56px;text-align:center">Cant.</span>
-                        <span style="width:88px;text-align:right">P. Unit.</span>
-                        <span style="width:88px;text-align:right">Subtotal</span>
+                        <span class="compra-col-name">Producto</span>
+                        <span class="compra-col-qty">Cant.</span>
+                        <span class="compra-col-price">P. Unit.</span>
+                        <span class="compra-col-sub">Subtotal</span>
                     </div>
                     ${c.items.map(i => {
                         const tipo = i.tipo_producto || 'reventa';
                         const badgeClass = `item-tipo-badge item-tipo-badge--${tipo}`;
                         return `<div class="compra-item-row">
-                            <span style="flex:1">
-                                <span class="compra-item-name">${i.producto_nombre}</span>
+                            <span class="compra-col-name">
+                                <span class="compra-item-name" title="${i.producto_nombre}">${i.producto_nombre}</span>
                                 <span class="${badgeClass}">${tipoBadge[tipo] || tipo}</span>
                             </span>
-                            <span style="width:56px;text-align:center;color:var(--text-secondary)">${i.cantidad % 1 === 0 ? i.cantidad : Number(i.cantidad).toFixed(2)}</span>
-                            <span style="width:88px;text-align:right;color:var(--text-secondary)">${formatMoney(i.precio_unitario)}</span>
-                            <span style="width:88px;text-align:right;color:var(--blue-light);font-weight:600">${formatMoney(i.subtotal)}</span>
+                            <span class="compra-col-qty">${i.cantidad % 1 === 0 ? i.cantidad : Number(i.cantidad).toFixed(2)}</span>
+                            <span class="compra-col-price">${formatMoney(i.precio_unitario)}</span>
+                            <span class="compra-col-sub">${formatMoney(i.subtotal)}</span>
                         </div>`;
                     }).join('')}
                 </div>
