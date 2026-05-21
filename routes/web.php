@@ -90,6 +90,18 @@ Route::middleware(['auth', 'role:alumno'])->prefix('panel')->group(function () {
     // Elaborados: carga manual de unidades y baja de sobrantes
     Route::post('/api/products/{product}/cargar-unidades', [ProductController::class, 'apiCargarUnidades']);
     Route::post('/api/products/{product}/baja-sobrantes',  [ProductController::class, 'apiBajaElaborados']);
+
+    // Ingresos API
+    Route::get('/api/ingresos', [\App\Http\Controllers\Panel\IngresoController::class, 'index']);
+    Route::post('/api/ingresos', [\App\Http\Controllers\Panel\IngresoController::class, 'store']);
+    Route::put('/api/ingresos/{ingreso}', [\App\Http\Controllers\Panel\IngresoController::class, 'update']);
+    Route::delete('/api/ingresos/{ingreso}', [\App\Http\Controllers\Panel\IngresoController::class, 'destroy']);
+
+    // Egresos API
+    Route::get('/api/egresos', [\App\Http\Controllers\Panel\EgresoController::class, 'index']);
+    Route::post('/api/egresos', [\App\Http\Controllers\Panel\EgresoController::class, 'store']);
+    Route::put('/api/egresos/{egreso}', [\App\Http\Controllers\Panel\EgresoController::class, 'update']);
+    Route::delete('/api/egresos/{egreso}', [\App\Http\Controllers\Panel\EgresoController::class, 'destroy']);
 });
 
 /*

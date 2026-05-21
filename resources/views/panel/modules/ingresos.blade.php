@@ -189,22 +189,15 @@
 
     function tipoLabel(t) { return TIPO_LABELS[t] || t || '—'; }
 
-    /* ── API mock (para funcionar sin backend) ── */
-    let _nextId = 1;
-    const STORAGE_KEY = 'kiosko_ingresos';
-
-    function storageLoad() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                ingresosData = JSON.parse(raw);
-                _nextId = ingresosData.length ? Math.max(...ingresosData.map(x => x.id)) + 1 : 1;
-            }
-        } catch(e) {}
-    }
-
-    function storageSave() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ingresosData)); } catch(e) {}
+    /* ── API Helper ── */
+    async function api(url, method = 'GET', body = null) {
+        const currentCsrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const opts = { method, headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': currentCsrfToken } };
+        if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+        const res = await fetch(url, opts);
+        const data = await res.json();
+        if (!res.ok) throw data;
+        return data;
     }
 
     /* ── Toast ── */
@@ -290,11 +283,16 @@
     }
 
     /* ── Cargar ── */
-    function load() {
+    async function load() {
         if (loaded) return;
-        storageLoad();
-        loaded = true;
-        renderTable();
+        try {
+            const data = await api('/panel/api/ingresos');
+            ingresosData = data.ingresos || [];
+            loaded = true;
+            renderTable();
+        } catch (e) {
+            toast('Error al cargar ingresos desde el servidor', 'error');
+        }
     }
 
     /* Observer de activación */
@@ -377,7 +375,7 @@
     };
 
     /* ── Submit form ── */
-    document.getElementById('ingresoForm')?.addEventListener('submit', function(e) {
+    document.getElementById('ingresoForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
         const fd  = new FormData(e.target);
         const id  = document.getElementById('ingreso-edit-id').value;
@@ -390,30 +388,35 @@
             detalle:     fd.get('detalle')?.trim() || '',
         };
 
-        if (id) {
-            const idx = ingresosData.findIndex(x => x.id == id);
-            if (idx !== -1) { ingresosData[idx] = { ...ingresosData[idx], ...rec }; }
-            toast('Ingreso actualizado correctamente');
-        } else {
-            rec.id = _nextId++;
-            ingresosData.unshift(rec);
-            toast('Ingreso registrado exitosamente');
+        try {
+            if (id) {
+                await api(`/panel/api/ingresos/${id}`, 'PUT', rec);
+                toast('Ingreso actualizado correctamente');
+            } else {
+                await api('/panel/api/ingresos', 'POST', rec);
+                toast('Ingreso registrado exitosamente');
+            }
+            loaded = false;
+            await load();
+            window.closeModal('ingresoFormModal');
+        } catch (err) {
+            toast(err.message || 'Error al procesar el ingreso', 'error');
         }
-
-        storageSave();
-        renderTable();
-        window.closeModal('ingresoFormModal');
     });
 
     /* ── Delete form ── */
-    document.getElementById('ingresoDeleteForm')?.addEventListener('submit', function(e) {
+    document.getElementById('ingresoDeleteForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
         const id = document.getElementById('ingreso-del-id').value;
-        ingresosData = ingresosData.filter(x => x.id != id);
-        storageSave();
-        renderTable();
-        toast('Ingreso eliminado');
-        window.closeModal('ingresoDeleteModal');
+        try {
+            await api(`/panel/api/ingresos/${id}`, 'DELETE');
+            toast('Ingreso eliminado');
+            loaded = false;
+            await load();
+            window.closeModal('ingresoDeleteModal');
+        } catch (err) {
+            toast('Error al eliminar el ingreso', 'error');
+        }
     });
 
 })();

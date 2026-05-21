@@ -189,22 +189,15 @@
 
     function tipoLabel(t) { return TIPO_LABELS[t] || t || '—'; }
 
-    /* ── Persistencia local (funciona sin backend) ── */
-    let _nextId = 1;
-    const STORAGE_KEY = 'kiosko_egresos';
-
-    function storageLoad() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                egresosData = JSON.parse(raw);
-                _nextId = egresosData.length ? Math.max(...egresosData.map(x => x.id)) + 1 : 1;
-            }
-        } catch(e) {}
-    }
-
-    function storageSave() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(egresosData)); } catch(e) {}
+    /* ── API Helper ── */
+    async function api(url, method = 'GET', body = null) {
+        const currentCsrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const opts = { method, headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': currentCsrfToken } };
+        if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+        const res = await fetch(url, opts);
+        const data = await res.json();
+        if (!res.ok) throw data;
+        return data;
     }
 
     /* ── Toast ── */
@@ -215,8 +208,6 @@
         t.className = `prov-toast ${type} visible`;
         setTimeout(() => t.classList.remove('visible'), 3200);
     }
-
-
 
     /* ── Render tabla ── */
     function filtered() {
@@ -289,11 +280,16 @@
     }
 
     /* ── Cargar ── */
-    function load() {
+    async function load() {
         if (loaded) return;
-        storageLoad();
-        loaded = true;
-        renderTable();
+        try {
+            const data = await api('/panel/api/egresos');
+            egresosData = data.egresos || [];
+            loaded = true;
+            renderTable();
+        } catch (e) {
+            toast('Error al cargar egresos desde el servidor', 'error');
+        }
     }
 
     /* Observer de activación */
@@ -375,7 +371,7 @@
     };
 
     /* ── Submit form ── */
-    document.getElementById('egresoForm')?.addEventListener('submit', function(e) {
+    document.getElementById('egresoForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
         const fd  = new FormData(e.target);
         const id  = document.getElementById('egreso-edit-id').value;
@@ -388,30 +384,35 @@
             detalle:     fd.get('detalle')?.trim() || '',
         };
 
-        if (id) {
-            const idx = egresosData.findIndex(x => x.id == id);
-            if (idx !== -1) { egresosData[idx] = { ...egresosData[idx], ...rec }; }
-            toast('Egreso actualizado correctamente');
-        } else {
-            rec.id = _nextId++;
-            egresosData.unshift(rec);
-            toast('Egreso registrado exitosamente');
+        try {
+            if (id) {
+                await api(`/panel/api/egresos/${id}`, 'PUT', rec);
+                toast('Egreso actualizado correctamente');
+            } else {
+                await api('/panel/api/egresos', 'POST', rec);
+                toast('Egreso registrado exitosamente');
+            }
+            loaded = false;
+            await load();
+            window.closeModal('egresoFormModal');
+        } catch (err) {
+            toast(err.message || 'Error al procesar el egreso', 'error');
         }
-
-        storageSave();
-        renderTable();
-        window.closeModal('egresoFormModal');
     });
 
     /* ── Delete form ── */
-    document.getElementById('egresoDeleteForm')?.addEventListener('submit', function(e) {
+    document.getElementById('egresoDeleteForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
         const id = document.getElementById('egreso-del-id').value;
-        egresosData = egresosData.filter(x => x.id != id);
-        storageSave();
-        renderTable();
-        toast('Egreso eliminado');
-        window.closeModal('egresoDeleteModal');
+        try {
+            await api(`/panel/api/egresos/${id}`, 'DELETE');
+            toast('Egreso eliminado');
+            loaded = false;
+            await load();
+            window.closeModal('egresoDeleteModal');
+        } catch (err) {
+            toast('Error al eliminar el egreso', 'error');
+        }
     });
 
 })();
