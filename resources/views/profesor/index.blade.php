@@ -145,6 +145,7 @@
 <script src="{{ asset('js/profesor/asistencia.js') }}"></script>
 <script src="{{ asset('js/profesor/desempeno_individual.js') }}"></script>
 <script src="{{ asset('js/profesor/desempeno_grupal.js') }}"></script>
+<script src="{{ asset('js/profesor/desempeno_economico.js') }}"></script>
 <script src="{{ asset('js/profesor/bitacora.js') }}"></script>
 <script src="{{ asset('js/profesor/usuarios.js') }}"></script>
 </body>

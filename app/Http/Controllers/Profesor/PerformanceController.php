@@ -445,5 +445,188 @@ class PerformanceController extends Controller
             'logs' => $logs
         ]);
     }
+
+    /* ══════════════════════════════════════════════════════════
+     * GET /profesor/api/performance/economico
+     *
+     * Devuelve el rendimiento económico consolidad e histórico
+     * y por rango de fechas para los grupos a cargo del profesor.
+     * ══════════════════════════════════════════════════════════ */
+    public function economico(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'nullable|date_format:Y-m-d',
+            'end_date'   => 'nullable|date_format:Y-m-d',
+        ]);
+
+        $professorId = Auth::id();
+
+        // 1. Obtener grupos a cargo del profesor
+        $groups = Group::where('professor_id', $professorId)
+            ->with('students:id,name,username')
+            ->get();
+
+        if ($groups->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'groups' => [],
+                'totals' => [
+                    'ganancia_efectiva' => 0,
+                    'perdida_efectiva'  => 0,
+                    'balance_neto'      => 0,
+                    'margen'            => 0,
+                ],
+            ]);
+        }
+
+        // Obtener todos los IDs de alumnos únicos bajo este profesor
+        $allStudentIds = $groups->flatMap(fn($g) => $g->students->pluck('id'))->unique()->values()->toArray();
+
+        // ─────────────────────────────────────────────────────────────────
+        // 2. CÁLCULO HISTÓRICO CONSOLIDADO (Banners Superiores)
+        // ─────────────────────────────────────────────────────────────────
+        if (empty($allStudentIds)) {
+            $histGanancia = 0;
+            $histPerdida  = 0;
+        } else {
+            // Ventas reales cobradas (pagado)
+            $histSalesTotal = \App\Models\Sale::whereIn('user_id', $allStudentIds)
+                ->where('estado', 'pagado')
+                ->sum('total');
+
+            // Ingresos manuales efectuados (excluyendo tipo venta_kiosco)
+            $histIngresosTotal = \App\Models\Ingreso::whereIn('user_id', $allStudentIds)
+                ->where('estado', 'efectuado')
+                ->where('tipo', '!=', 'venta_kiosco')
+                ->sum('monto');
+
+            // Compras automáticas (egresos de tipo insumos con descripción Compra mercadería #)
+            $histComprasTotal = \App\Models\Egreso::whereIn('user_id', $allStudentIds)
+                ->where('tipo', 'insumos')
+                ->where('descripcion', 'like', 'Compra mercadería #%')
+                ->where('estado', 'efectuado')
+                ->sum('monto');
+
+            // Egresos manuales efectuados (excluyendo egresos automáticos de compras)
+            $histEgresosTotal = \App\Models\Egreso::whereIn('user_id', $allStudentIds)
+                ->where('estado', 'efectuado')
+                ->where(function ($q) {
+                    $q->where('tipo', '!=', 'insumos')
+                      ->orWhere('descripcion', 'not like', 'Compra mercadería #%');
+                })
+                ->sum('monto');
+
+            $histGanancia = floatval($histSalesTotal) + floatval($histIngresosTotal);
+            $histPerdida  = floatval($histComprasTotal) + floatval($histEgresosTotal);
+        }
+
+        $histBalance = $histGanancia - $histPerdida;
+        $histMargen  = $histGanancia > 0 ? round(($histBalance / $histGanancia) * 100, 1) : 0;
+
+        // ─────────────────────────────────────────────────────────────────
+        // 3. CÁLCULO POR RANGO DE FECHAS (Tarjetas de Grupo)
+        // ─────────────────────────────────────────────────────────────────
+        $startDate = $request->start_date 
+            ? Carbon::createFromFormat('Y-m-d', $request->start_date)->startOfDay() 
+            : Carbon::now()->startOfMonth()->startOfDay();
+
+        $endDate = $request->end_date 
+            ? Carbon::createFromFormat('Y-m-d', $request->end_date)->endOfDay() 
+            : Carbon::now()->endOfMonth()->endOfDay();
+
+        $groupsData = [];
+
+        foreach ($groups as $group) {
+            $studentIds = $group->students->pluck('id')->toArray();
+            
+            if (empty($studentIds)) {
+                $groupsData[] = [
+                    'id'                => $group->id,
+                    'name'              => $group->name,
+                    'member_count'      => 0,
+                    'ventas_total'      => 0,
+                    'compras_total'     => 0,
+                    'ingresos_total'    => 0,
+                    'egresos_total'     => 0,
+                    'ganancia_efectiva' => 0,
+                    'perdida_efectiva'  => 0,
+                    'balance_neto'      => 0,
+                    'pct_ingreso'       => 50,
+                ];
+                continue;
+            }
+
+            // Ventas efectuadas en el período
+            $sales = \App\Models\Sale::whereIn('user_id', $studentIds)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->get();
+            $ventasTotal = floatval($sales->where('estado', 'pagado')->sum('total'));
+
+            // Compras efectuadas en el período
+            $comprasTotal = floatval(
+                \App\Models\Egreso::whereIn('user_id', $studentIds)
+                    ->where('tipo', 'insumos')
+                    ->where('descripcion', 'like', 'Compra mercadería #%')
+                    ->where('estado', 'efectuado')
+                    ->whereBetween('fecha', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->sum('monto')
+            );
+
+            // Ingresos efectuados en el período (excluyendo tipo venta_kiosco)
+            $ingresos = \App\Models\Ingreso::whereIn('user_id', $studentIds)
+                ->where('estado', 'efectuado')
+                ->where('tipo', '!=', 'venta_kiosco')
+                ->whereBetween('fecha', [$startDate->toDateString(), $endDate->toDateString()])
+                ->get();
+            $ingresosTotal = floatval($ingresos->sum('monto'));
+
+            // Egresos efectuados en el período (excluyendo egresos automáticos de compras)
+            $egresos = \App\Models\Egreso::whereIn('user_id', $studentIds)
+                ->where('estado', 'efectuado')
+                ->where(function ($q) {
+                    $q->where('tipo', '!=', 'insumos')
+                      ->orWhere('descripcion', 'not like', 'Compra mercadería #%');
+                })
+                ->whereBetween('fecha', [$startDate->toDateString(), $endDate->toDateString()])
+                ->get();
+            $egresosTotal = floatval($egresos->sum('monto'));
+
+            $gananciaEfectiva = $ventasTotal + $ingresosTotal;
+            $perdidaEfectiva  = $comprasTotal + $egresosTotal;
+            $balanceNeto      = $gananciaEfectiva - $perdidaEfectiva;
+
+            $totalFlujo = $gananciaEfectiva + $perdidaEfectiva;
+            $pctIngreso = $totalFlujo > 0 ? intval(round(($gananciaEfectiva / $totalFlujo) * 100)) : 50;
+
+            $groupsData[] = [
+                'id'                => $group->id,
+                'name'              => $group->name,
+                'member_count'      => count($studentIds),
+                'ventas_total'      => $ventasTotal,
+                'compras_total'     => $comprasTotal,
+                'ingresos_total'    => $ingresosTotal,
+                'egresos_total'     => $egresosTotal,
+                'ganancia_efectiva' => $gananciaEfectiva,
+                'perdida_efectiva'  => $perdidaEfectiva,
+                'balance_neto'      => $balanceNeto,
+                'pct_ingreso'       => $pctIngreso,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'period'  => [
+                'start' => $startDate->toDateString(),
+                'end'   => $endDate->toDateString(),
+            ],
+            'totals' => [
+                'ganancia_efectiva' => $histGanancia,
+                'perdida_efectiva'  => $histPerdida,
+                'balance_neto'      => $histBalance,
+                'margen'            => $histMargen,
+            ],
+            'groups' => $groupsData,
+        ]);
+    }
 }
 

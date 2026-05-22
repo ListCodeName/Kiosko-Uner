@@ -4,6 +4,7 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\Profesor\AttendanceController;
 use App\Http\Controllers\Profesor\PerformanceController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\Panel\AlumnoUserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -117,6 +118,10 @@ Route::middleware(['auth', 'role:alumno'])->prefix('panel')->group(function () {
     Route::post('/api/egresos', [\App\Http\Controllers\Panel\EgresoController::class, 'store']);
     Route::put('/api/egresos/{egreso}', [\App\Http\Controllers\Panel\EgresoController::class, 'update']);
     Route::delete('/api/egresos/{egreso}', [\App\Http\Controllers\Panel\EgresoController::class, 'destroy']);
+
+    // Usuarios API (Módulo de Usuarios – solo lectura de alumnos y cambio de contraseña)
+    Route::get('/api/users',                  [AlumnoUserController::class, 'index']);
+    Route::put('/api/users/{id}/password',    [AlumnoUserController::class, 'updatePassword']);
 });
 
 /*
@@ -193,6 +198,7 @@ Route::middleware(['auth', 'role:profesor'])->prefix('profesor')->group(function
     Route::get('/api/performance/attendance-detail', [PerformanceController::class, 'attendanceDetail']);
     Route::get('/api/performance/activity-detail',   [PerformanceController::class, 'activityDetail']);
     Route::get('/api/performance/grupal',            [PerformanceController::class, 'grupal']);
+    Route::get('/api/performance/economico',         [PerformanceController::class, 'economico']);
     Route::get('/api/bitacora',                      [PerformanceController::class, 'bitacora']);
 });
 

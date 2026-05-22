@@ -155,15 +155,6 @@
                 <div class="nav-group-items">
 
                     <button class="nav-item"
-                            data-module="empleados"
-                            data-title="Empleados"
-                            data-badge="Personal"
-                            data-tooltip="Empleados">
-                        <span class="nav-icon">👥</span>
-                        <span class="nav-label">Empleados</span>
-                    </button>
-
-                    <button class="nav-item"
                             data-module="usuarios"
                             data-title="Usuarios"
                             data-badge="Personal"
@@ -251,9 +242,7 @@
                 @include('panel.modules.estadisticas')
             </section>
 
-            <section class="module-section" data-module-content="empleados">
-                @include('panel.modules.empleados')
-            </section>
+            {{-- Módulo empleados eliminado: la gestión completa la realiza el Profesor --}}
 
             <section class="module-section" data-module-content="usuarios">
                 @include('panel.modules.usuarios')
@@ -280,5 +269,6 @@
 <script src="{{ asset('js/modal-manager.js') }}"></script>
 <script src="{{ asset('js/panel/panel.js') }}"></script>
 <script src="{{ asset('js/panel/kiosco.js') }}"></script>
+<script src="{{ asset('js/panel/usuarios.js') }}"></script>
 </body>
 </html>
