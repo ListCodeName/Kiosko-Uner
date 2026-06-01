@@ -244,11 +244,26 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
                     $sl = match($sc){'zero'=>'Sin stock','medium'=>$product->stock.' (bajo)','high'=>$product->stock.' uds.'};
                     $stockHtml = '<span class="pstock '.$sc.'"><span class="psdot"></span>'.$sl.'</span>';
                 }
-                // Precio display
-                if ($product->price > 0) {
-                    $precioHtml = '<span class="pprice">$'.number_format($product->price,2,',','.').'</span>';
-                } else {
-                    $precioHtml = '<span class="pprice--none">Sin precio aún</span>';
+                
+                // Precio display segmentado por tipo
+                if ($tipo === 'reventa') {
+                    $ventaStr = $product->sale_price > 0
+                        ? '<span class="pprice" style="cursor:pointer;" title="Click para cambiar precio de venta" onclick="openProdPrice('.$product->id.',\''.addslashes($product->name).'\','.(float)$product->sale_price.','.(float)$product->price.')">$'.number_format($product->sale_price,2,',','.').' <span style="font-size:0.7rem;font-weight:normal;color:#8990a8;">(Venta)</span></span>'
+                        : '<span class="pprice--none" style="cursor:pointer;" title="Fijar precio de venta" onclick="openProdPrice('.$product->id.',\''.addslashes($product->name).'\',0,'.(float)$product->price.')">Fijar precio venta</span>';
+                    
+                    $costoStr = $product->price > 0
+                        ? '<span style="font-size:.75rem;color:#8990a8;">Costo: $'.number_format($product->price,2,',','.').'</span>'
+                        : '<span style="font-size:.75rem;color:#4a4f66;font-style:italic;">Sin costo aún</span>';
+                    
+                    $precioHtml = '<div style="display:flex;flex-direction:column;gap:.1rem">'.$ventaStr.$costoStr.'</div>';
+                } elseif ($tipo === 'insumo') {
+                    $precioHtml = $product->price > 0
+                        ? '<span class="pprice" style="color:#fbbf24;">$'.number_format($product->price,2,',','.').' <span style="font-size:0.72rem;font-weight:normal;color:#8990a8;">(Costo)</span></span>'
+                        : '<span class="pprice--none">Sin costo aún</span>';
+                } else { // elaborado
+                    $precioHtml = $product->sale_price > 0
+                        ? '<span class="pprice" style="color:#c084fc;cursor:pointer;" title="Click para cambiar precio de venta" onclick="openProdPrice('.$product->id.',\''.addslashes($product->name).'\','.(float)$product->sale_price.',0)">$'.number_format($product->sale_price,2,',','.').' <span style="font-size:0.7rem;font-weight:normal;color:#8990a8;">(Venta)</span></span>'
+                        : '<span class="pprice--none" style="cursor:pointer;" title="Fijar precio de venta" onclick="openProdPrice('.$product->id.',\''.addslashes($product->name).'\',0,0)">Fijar precio venta</span>';
                 }
             @endphp
             <tr data-tipo="{{ $tipo }}" data-pname="{{ strtolower($product->name) }}">
@@ -273,16 +288,24 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
                 </td>
                 <td>
                     <div class="pactions">
-                        {{-- Editar (solo nombre, desc, tipo — y precio si es elaborado) --}}
+                        {{-- Editar (nombre, desc, tipo y precio de venta) --}}
                         <button class="pbtn pbtn-edit"
-                            onclick="openProdEdit({{ $product->id }},'{{ addslashes($product->name) }}','{{ addslashes($product->description ?? '') }}','{{ $product->tipo }}',{{ (float)$product->price }},'{{ addslashes($product->category?->name ?? '') }}')">
+                            onclick="openProdEdit({{ $product->id }},'{{ addslashes($product->name) }}','{{ addslashes($product->description ?? '') }}','{{ $product->tipo }}',{{ (float)$product->sale_price }},'{{ addslashes($product->category?->name ?? '') }}')">
                             ✏️ Editar
                         </button>
+
+                        @if($tipo === 'reventa' || $tipo === 'elaborado')
+                        {{-- Cambiar precio de venta directamente --}}
+                        <button class="pbtn" style="background:rgba(34,211,160,.12);color:#22d3a0;border:1px solid rgba(34,211,160,.3);"
+                            onclick="openProdPrice({{ $product->id }},'{{ addslashes($product->name) }}',{{ (float)$product->sale_price }},{{ (float)$product->price }})">
+                            🏷️ Precio
+                        </button>
+                        @endif
 
                         @if($tipo === 'elaborado')
                         {{-- Cargar unidades producidas --}}
                         <button class="pbtn pbtn-load"
-                            onclick="openCargarUnidades({{ $product->id }},'{{ addslashes($product->name) }}',{{ $product->stock }},{{ $product->price }})">
+                            onclick="openCargarUnidades({{ $product->id }},'{{ addslashes($product->name) }}',{{ $product->stock }},{{ (float)$product->sale_price }})">
                             📦 Cargar
                         </button>
                         {{-- Dar de baja sobrantes --}}
@@ -369,23 +392,71 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
                 <small style="color:#8990a8;font-size:.73rem;margin-bottom:.75rem;display:block">📦 Agrupá el producto en una categoría (golosinas, gaseosas, etc.)</small>
             </div>
 
-            {{-- Campo precio: solo visible para tipo elaborado --}}
+            {{-- Campo precio de venta: visible para reventa y elaborado --}}
             <div id="pn-precio-row" style="display:none">
                 <label for="pn-precio">Precio de venta ($)</label>
-                <input type="number" id="pn-precio" name="price" min="0" step="0.01" placeholder="Ej: 1500.00" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .8rem;color:#e2e8f0;font-size:.875rem;outline:none;" oninput="this.style.borderColor='#8b85ff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-                <small style="color:#8b85ff;font-size:.75rem;">💡 Precio fijado manualmente para elaborados.</small>
+                <input type="number" id="pn-precio" name="sale_price" min="0" step="0.01" placeholder="Ej: 1500.00" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .8rem;color:#e2e8f0;font-size:.875rem;outline:none;" oninput="this.style.borderColor='#8b85ff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+                <small style="color:#8b85ff;font-size:.75rem;" id="pn-precio-tip">💡 Precio fijado manualmente para elaborados.</small>
             </div>
 
             <label for="pn-desc">Descripción (opcional)</label>
             <textarea id="pn-desc" name="description" maxlength="1000" placeholder="Descripción, presentación, variedad…"></textarea>
 
             <div id="pn-info-auto" style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.18);border-radius:8px;padding:.55rem .8rem;font-size:.78rem;color:#8b85ff;margin-bottom:1rem">
-                ℹ️ El precio y stock <strong>no se cargan aquí</strong>. Se actualizan automáticamente al registrar compras o cargar unidades.
+                ℹ️ El stock <strong>no se carga aquí</strong>. Se actualiza automáticamente al registrar compras o cargar unidades.
             </div>
 
             <div class="pmodal-footer">
                 <button type="button" class="pbtn pbtn-cancel" onclick="closeProdNew()">Cancelar</button>
                 <button type="submit" class="pbtn pbtn-confirm">✅ Crear Producto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- ══════════════════ MODAL: CAMBIAR PRECIO DE VENTA (Dedicado) ══════════════════ --}}
+<div class="pmodal-overlay" id="prodPriceModal">
+    <div class="pmodal">
+        <div class="pmodal-title" style="color:#22d3a0;display:flex;align-items:center;gap:.5rem">
+            <span>🏷️ Cambiar Precio de Venta</span>
+        </div>
+        <p class="pmodal-sub" id="pprice-subtitle">Actualizá la tarifa al público del producto.</p>
+        
+        <form id="prodPriceForm" method="POST">
+            @csrf
+            
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:1rem;margin-bottom:1rem;display:flex;flex-direction:column;gap:.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:.78rem;color:#8990a8;">Precio de Venta Anterior:</span>
+                    <span style="font-weight:700;color:#e8eaf0;" id="pprice-old">$0,00</span>
+                </div>
+                <div id="pprice-cost-container" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:.78rem;color:#8990a8;">Precio de Compra (Costo):</span>
+                    <span style="font-weight:700;color:#fbbf24;" id="pprice-cost">$0,00</span>
+                </div>
+            </div>
+
+            <label for="pp-sale-price">Nuevo Precio de Venta ($)</label>
+            <div style="position:relative;margin-bottom:1.25rem;">
+                <span style="position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:#8990a8;font-weight:600">$</span>
+                <input type="number" id="pp-sale-price" name="sale_price" step="0.01" min="0" required placeholder="0.00" style="padding-left:1.8rem;margin-bottom:0;" oninput="calcularMargenInteractivo()">
+            </div>
+
+            {{-- Resultados matemáticos interactivos en tiempo real --}}
+            <div id="pprice-results" style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.25rem;">
+                <div id="pprice-margen-row" style="display:flex;align-items:center;justify-content:space-between;background:rgba(34,211,160,.06);border:1px solid rgba(34,211,160,.15);border-radius:8px;padding:.5rem .8rem;font-size:.82rem;">
+                    <span style="color:#22d3a0;font-weight:600;"> Margen de Utilidad sobre costo:</span>
+                    <span id="pprice-margen-badge" style="font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(34,211,160,.12);color:#22d3a0;">0.00%</span>
+                </div>
+                <div id="pprice-var-row" style="display:flex;align-items:center;justify-content:space-between;background:rgba(108,99,255,.06);border:1px solid rgba(108,99,255,.15);border-radius:8px;padding:.5rem .8rem;font-size:.82rem;">
+                    <span style="color:#8b85ff;font-weight:600;"> Variación sobre precio anterior:</span>
+                    <span id="pprice-var-badge" style="font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(108,99,255,.12);color:#8b85ff;">0.00%</span>
+                </div>
+            </div>
+
+            <div class="pmodal-footer">
+                <button type="button" class="pbtn pbtn-cancel" onclick="closeProdPrice()">Cancelar</button>
+                <button type="submit" class="pbtn pbtn-confirm" style="background:linear-gradient(135deg,#22d3a0,#10b981);box-shadow:0 4px 14px rgba(34,211,160,.3)">💾 Guardar Precio</button>
             </div>
         </form>
     </div>
@@ -422,11 +493,11 @@ table.ptable tbody td:last-child  { padding-right:1.5rem;text-align:right; }
                 <small style="color:#8990a8;font-size:.73rem;margin-bottom:.75rem;display:block">📦 Agrupá el producto en una categoría</small>
             </div>
 
-            {{-- Campo precio: solo visible para tipo elaborado --}}
+            {{-- Campo precio de venta: visible para reventa y elaborado --}}
             <div id="pe-precio-row" style="display:none;margin-bottom:.75rem">
                 <label for="pe-precio">Precio de venta ($)</label>
-                <input type="number" id="pe-precio" name="price" min="0" step="0.01" placeholder="Ej: 1500.00" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .8rem;color:#e2e8f0;font-size:.875rem;outline:none;" oninput="this.style.borderColor='#8b85ff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-                <small style="color:#8b85ff;font-size:.75rem;">💡 Precio fijado manualmente para elaborados.</small>
+                <input type="number" id="pe-precio" name="sale_price" min="0" step="0.01" placeholder="Ej: 1500.00" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.55rem .8rem;color:#e2e8f0;font-size:.875rem;outline:none;" oninput="this.style.borderColor='#8b85ff'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+                <small style="color:#8b85ff;font-size:.75rem;" id="pe-precio-tip">💡 Precio fijado manualmente para elaborados.</small>
             </div>
 
             <label for="pe-desc">Descripción (opcional)</label>
@@ -563,15 +634,24 @@ function updateTipoHint(elId, precioRowId, grupoRowId, tipo) {
         el.innerHTML = tipoHints[tipo] || '';
         el.className = 'ptipo-hint ptipo-hint--' + tipo;
     }
-    // Precio: solo elaborado
+    // Precio: elaborado y reventa tienen precio de venta al público
     const precioRow = document.getElementById(precioRowId);
-    if (precioRow) precioRow.style.display = (tipo === 'elaborado') ? '' : 'none';
+    if (precioRow) precioRow.style.display = (tipo === 'elaborado' || tipo === 'reventa') ? '' : 'none';
     // Grupo: solo reventa
     const grupoRow = document.getElementById(grupoRowId);
     if (grupoRow) grupoRow.style.display = (tipo === 'reventa') ? '' : 'none';
     // Nota de precios automáticos
     const infoAuto = document.getElementById('pn-info-auto');
-    if (infoAuto) infoAuto.style.display = (tipo === 'elaborado') ? 'none' : '';
+    if (infoAuto) infoAuto.style.display = (tipo === 'elaborado' || tipo === 'reventa') ? 'none' : '';
+
+    const precioTip = document.getElementById(elId === 'pn-hint' ? 'pn-precio-tip' : 'pe-precio-tip');
+    if (precioTip) {
+        if (tipo === 'reventa') {
+            precioTip.innerHTML = '💡 Precio fijado manualmente para la venta al público. Su costo se actualizará al comprar.';
+        } else if (tipo === 'elaborado') {
+            precioTip.innerHTML = '💡 Precio fijado manualmente para la venta al público de producción propia.';
+        }
+    }
 }
 
 /* ── Filtro por tipo ── */
@@ -684,13 +764,95 @@ function openProdEdit(id, name, desc, tipo, precio, grupo) {
     document.getElementById('pe-name').value  = name;
     document.getElementById('pe-desc').value  = desc;
     document.getElementById('pe-tipo').value  = tipo;
-    document.getElementById('pe-precio').value = (tipo === 'elaborado' && precio > 0) ? precio : '';
+    document.getElementById('pe-precio').value = ((tipo === 'elaborado' || tipo === 'reventa') && precio > 0) ? precio : '';
     renderGroupOptions('pe-grupo', grupo || '');
     updateTipoHint('pe-hint', 'pe-precio-row', 'pe-grupo-row', tipo);
     document.getElementById('prodEditForm').action = '/products/' + id;
     window.openModal('prodEditModal');
 }
 function closeProdEdit() { window.closeModal('prodEditModal'); }
+
+/* ── Cambiar Precio de Venta (Dedicado) ── */
+let _ppriceOld = 0;
+let _ppriceCost = 0;
+
+function openProdPrice(id, name, salePrice, price) {
+    document.getElementById('pprice-subtitle').innerHTML = 'Producto: <strong>' + name + '</strong>';
+    document.getElementById('pprice-old').textContent = '$' + salePrice.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    _ppriceOld = salePrice;
+    _ppriceCost = price;
+
+    const costContainer = document.getElementById('pprice-cost-container');
+    const margenRow = document.getElementById('pprice-margen-row');
+
+    if (price > 0) {
+        costContainer.style.display = 'flex';
+        document.getElementById('pprice-cost').textContent = '$' + price.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        margenRow.style.display = 'flex';
+    } else {
+        costContainer.style.display = 'none';
+        margenRow.style.display = 'none';
+    }
+
+    const input = document.getElementById('pp-sale-price');
+    input.value = salePrice > 0 ? salePrice : '';
+    document.getElementById('prodPriceForm').action = '/products/' + id + '/update-sale-price';
+    
+    calcularMargenInteractivo();
+    window.openModal('prodPriceModal');
+    setTimeout(() => input.focus(), 80);
+}
+
+function closeProdPrice() {
+    window.closeModal('prodPriceModal');
+}
+
+function calcularMargenInteractivo() {
+    const val = parseFloat(document.getElementById('pp-sale-price').value) || 0;
+    
+    // Variación sobre anterior
+    const varBadge = document.getElementById('pprice-var-badge');
+    const varRow = document.getElementById('pprice-var-row');
+    if (_ppriceOld > 0 && val > 0) {
+        const variation = ((val - _ppriceOld) / _ppriceOld) * 100;
+        varRow.style.display = 'flex';
+        varBadge.textContent = (variation >= 0 ? '+' : '') + variation.toFixed(2) + '%';
+        if (variation > 0) {
+            varBadge.style.cssText = 'font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(34,211,160,.12);color:#22d3a0;';
+        } else if (variation < 0) {
+            varBadge.style.cssText = 'font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(255,107,107,.12);color:#ff6b6b;';
+        } else {
+            varBadge.style.cssText = 'font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(255,255,255,.05);color:#8990a8;';
+        }
+    } else {
+        varRow.style.display = 'none';
+    }
+
+    // Margen sobre costo
+    const margenBadge = document.getElementById('pprice-margen-badge');
+    const margenRow = document.getElementById('pprice-margen-row');
+    if (_ppriceCost > 0 && val > 0) {
+        const margin = ((val - _ppriceCost) / _ppriceCost) * 100;
+        margenRow.style.display = 'flex';
+        margenBadge.textContent = (margin >= 0 ? '+' : '') + margin.toFixed(2) + '%';
+        if (margin > 30) { // Margen saludable
+            margenBadge.style.cssText = 'font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(34,211,160,.12);color:#22d3a0;';
+            margenRow.style.background = 'rgba(34,211,160,.06)';
+            margenRow.style.borderColor = 'rgba(34,211,160,.15)';
+        } else if (margin > 0) { // Margen bajo
+            margenBadge.style.cssText = 'font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(251,191,36,.12);color:#fbbf24;';
+            margenRow.style.background = 'rgba(251,191,36,.06)';
+            margenRow.style.borderColor = 'rgba(251,191,36,.15)';
+        } else { // Pérdida o costo puro
+            margenBadge.style.cssText = 'font-weight:700;padding:.2rem .5rem;border-radius:6px;background:rgba(255,107,107,.12);color:#ff6b6b;';
+            margenRow.style.background = 'rgba(255,107,107,.06)';
+            margenRow.style.borderColor = 'rgba(255,107,107,.15)';
+        }
+    } else {
+        margenRow.style.display = 'none';
+    }
+}
 
 /* ── Eliminar ── */
 function openProdDelete(id, name) {

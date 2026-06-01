@@ -36,7 +36,7 @@ class KioscoController extends Controller
                     'products'    => $cat->products->map(fn($p) => [
                         'id'    => $p->id,
                         'name'  => $p->name,
-                        'price' => (float) $p->price,
+                        'price' => (float) $p->sale_price,
                         'stock' => $p->stock,
                     ]),
                 ];
@@ -87,13 +87,13 @@ class KioscoController extends Controller
                     ], 422);
                 }
 
-                $subtotal = $product->price * $item['qty'];
+                $subtotal = $product->sale_price * $item['qty'];
                 $total   += $subtotal;
 
                 $lineItems[] = [
                     'product'    => $product,
                     'qty'        => $item['qty'],
-                    'unit_price' => $product->price,
+                    'unit_price' => $product->sale_price,
                     'subtotal'   => $subtotal,
                 ];
             }

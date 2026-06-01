@@ -64,7 +64,7 @@ class PedidoController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $product = Product::where('name', $item['product_name'])->first();
-                $price   = $product ? (float) $product->price : 0;
+                $price   = $product ? (float) $product->sale_price : 0;
                 $subtotal = $price * $item['quantity'];
                 $total   += $subtotal;
 
@@ -125,7 +125,7 @@ class PedidoController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $product = Product::where('name', $item['product_name'])->first();
-                $price   = $product ? (float) $product->price : 0;
+                $price   = $product ? (float) $product->sale_price : 0;
                 $subtotal = $price * $item['quantity'];
                 $total   += $subtotal;
 

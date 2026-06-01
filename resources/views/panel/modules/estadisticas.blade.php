@@ -130,6 +130,65 @@
     grid-column: 1 / -1;
 }
 
+/* ── Gráfico productos más vendidos ── */
+.est-prod-header {
+    display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.est-prod-toggle {
+    display: flex; gap: 6px; flex-shrink: 0;
+}
+.est-prod-toggle-btn {
+    padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,.1);
+    background: transparent; color: var(--text-muted); font-size: .72rem; font-weight: 600;
+    cursor: pointer; transition: all .2s; font-family: inherit;
+}
+.est-prod-toggle-btn.active {
+    background: rgba(45,140,255,.2); border-color: rgba(45,140,255,.4);
+    color: #6ab4ff;
+}
+.est-prod-list { display: flex; flex-direction: column; gap: 10px; }
+.est-prod-row {
+    display: grid;
+    grid-template-columns: 26px 1fr auto;
+    align-items: center; gap: 10px;
+}
+.est-prod-rank {
+    font-size: .7rem; font-weight: 800; color: var(--text-muted);
+    text-align: center;
+}
+.est-prod-rank--top { font-size: 1rem; }
+.est-prod-rank--num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .68rem; font-weight: 800; color: var(--text-muted);
+    margin: 0 auto;
+}
+.est-prod-footer {
+    margin-top: 10px; font-size: .7rem; color: var(--text-muted);
+    text-align: center; letter-spacing: .3px;
+}
+.est-prod-info { display: flex; flex-direction: column; gap: 4px; }
+.est-prod-name {
+    font-size: .82rem; font-weight: 600; color: var(--text-white);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+}
+.est-prod-track {
+    height: 7px; border-radius: 4px;
+    background: rgba(255,255,255,.05); overflow: hidden;
+}
+.est-prod-fill {
+    height: 100%; border-radius: 4px;
+    transition: width .7s cubic-bezier(.4,0,.2,1);
+}
+.est-prod-val {
+    font-size: .82rem; font-weight: 700; color: var(--text-white);
+    text-align: right; white-space: nowrap;
+}
+.est-prod-empty {
+    text-align: center; padding: 32px; color: var(--text-muted); font-size: .85rem;
+}
+
 /* ── Mini barras de compras ── */
 .est-bar-row {
     display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
@@ -352,6 +411,22 @@
                 </div>
             </div>
 
+            {{-- Gráfico 6: Productos más vendidos (ancho completo) --}}
+            <div class="est-chart-card est-chart-card--wide">
+                <div class="est-prod-header">
+                    <div>
+                        <div class="est-chart-title">🏆 Productos Más Vendidos</div>
+                        <div class="est-chart-subtitle">Ranking de los 10 productos con mayor movimiento en ventas cobradas</div>
+                    </div>
+                    <div class="est-prod-toggle">
+                        <button class="est-prod-toggle-btn active" id="prodToggleQty" onclick="EstadisticasModule.showProdChart('qty')">📦 Cantidad</button>
+                        <button class="est-prod-toggle-btn" id="prodToggleRev" onclick="EstadisticasModule.showProdChart('rev')">💰 Ingresos</button>
+                    </div>
+                </div>
+                <div class="est-prod-list" id="prodChartList"></div>
+                <div class="est-prod-footer" id="prodChartFooter" style="display:none"></div>
+            </div>
+
         </div>{{-- /.est-charts-grid --}}
 
     </div>{{-- /#estContent --}}
@@ -450,6 +525,100 @@ const EstadisticasModule = (function () {
                 </div>`;
             legend.appendChild(item);
         });
+    }
+
+    // ── Estado gráfico de productos ──────────────────────────────
+    let _prodDataQty  = [];
+    let _prodDataRev  = [];
+    let _prodView     = 'qty';
+    let _prodTotalQty = 0;   // total de productos distintos (sin slice)
+    let _prodTotalRev = 0;
+
+    // ── Gráfico de productos más vendidos ───────────────────────
+    function buildProdChart(mode) {
+        const list = $('prodChartList');
+        if (!list) return;
+
+        const data      = mode === 'qty' ? _prodDataQty : _prodDataRev;
+        const totalDist = mode === 'qty' ? _prodTotalQty : _prodTotalRev;
+        list.innerHTML  = '';
+
+        if (!data.length) {
+            list.innerHTML = '<div class="est-prod-empty">📭 Sin datos de productos vendidos</div>';
+            return;
+        }
+
+        const maxVal = data[0]?.value || 1;
+
+        // Colores fijos del podio
+        const podiumColors = [
+            'linear-gradient(90deg, #fbbf24, #f59e0b)', // 🥇 oro
+            'linear-gradient(90deg, #94a3b8, #cbd5e1)', // 🥈 plata
+            'linear-gradient(90deg, #fb923c, #c2612a)', // 🥉 bronce
+        ];
+        // Paleta continua para el resto (posiciones 4-10)
+        const restColors = [
+            'linear-gradient(90deg, #2d8cff, #6ab4ff)',
+            'linear-gradient(90deg, #4ade80, #22c55e)',
+            'linear-gradient(90deg, #a78bfa, #8b5cf6)',
+            'linear-gradient(90deg, #34d399, #10b981)',
+            'linear-gradient(90deg, #60a5fa, #3b82f6)',
+            'linear-gradient(90deg, #f472b6, #ec4899)',
+            'linear-gradient(90deg, #c084fc, #a855f7)',
+        ];
+
+        data.forEach((item, i) => {
+            const pct      = (item.value / maxVal) * 100;
+            const rank     = i + 1;
+            const isPodium = rank <= 3;
+            const grad     = isPodium ? podiumColors[i] : restColors[(i - 3) % restColors.length];
+            const displayVal = mode === 'qty'
+                ? `${item.value} ud.`
+                : fmt(item.value);
+
+            // Separador visual entre podio y el resto
+            if (rank === 4) {
+                const sep = document.createElement('div');
+                sep.style.cssText = 'border-top: 1px solid rgba(255,255,255,.07); margin: 4px 0 2px;';
+                list.appendChild(sep);
+            }
+
+            const medalIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+            const rankHTML  = medalIcon
+                ? `<div class="est-prod-rank est-prod-rank--top">${medalIcon}</div>`
+                : `<div class="est-prod-rank est-prod-rank--num">${rank}</div>`;
+
+            const row = document.createElement('div');
+            row.className = 'est-prod-row';
+            row.innerHTML = `
+                ${rankHTML}
+                <div class="est-prod-info">
+                    <span class="est-prod-name" title="${item.label}">${item.label}</span>
+                    <div class="est-prod-track">
+                        <div class="est-prod-fill" style="width:${pct.toFixed(1)}%; background:${grad}"></div>
+                    </div>
+                </div>
+                <div class="est-prod-val">${displayVal}</div>`;
+            list.appendChild(row);
+        });
+
+        // Footer: mostrar cuántos hay en total si supera el límite
+        const footer = $('prodChartFooter');
+        if (footer) {
+            if (totalDist > 10) {
+                footer.textContent = `Mostrando top 10 de ${totalDist} productos distintos vendidos`;
+                footer.style.display = 'block';
+            } else {
+                footer.style.display = 'none';
+            }
+        }
+    }
+
+    function showProdChart(mode) {
+        _prodView = mode;
+        $('prodToggleQty')?.classList.toggle('active', mode === 'qty');
+        $('prodToggleRev')?.classList.toggle('active', mode === 'rev');
+        buildProdChart(mode);
     }
 
     // ── Fetch paralelo de todas las fuentes ─────────────────────
@@ -643,6 +812,34 @@ const EstadisticasModule = (function () {
                 { label: '📉 Salidas efectivas',   value: perdidaEfectiva,  formatted: fmt(perdidaEfectiva) },
             ].filter(s => s.value > 0), PALETTES.flujo);
 
+            // ── Gráfico 6: Productos más vendidos ────────────────
+            // Acumular cantidades e ingresos por producto desde los items de ventas cobradas
+            const prodQtyMap = {};
+            const prodRevMap = {};
+            ventas
+                .filter(v => v.estado === 'pagado')
+                .forEach(v => {
+                    (v.items ?? []).forEach(item => {
+                        const nombre = item.nombre || `Producto #${item.product_id}`;
+                        prodQtyMap[nombre] = (prodQtyMap[nombre] || 0) + norm(item.cantidad);
+                        prodRevMap[nombre] = (prodRevMap[nombre] || 0) + (norm(item.cantidad) * norm(item.precio));
+                    });
+                });
+
+            const allQty = Object.entries(prodQtyMap)
+                .map(([label, value]) => ({ label, value }))
+                .sort((a, b) => b.value - a.value);
+            const allRev = Object.entries(prodRevMap)
+                .map(([label, value]) => ({ label, value }))
+                .sort((a, b) => b.value - a.value);
+
+            _prodTotalQty = allQty.length;
+            _prodTotalRev = allRev.length;
+            _prodDataQty  = allQty.slice(0, 10);
+            _prodDataRev  = allRev.slice(0, 10);
+
+            buildProdChart(_prodView);
+
             // ── Mostrar contenido ─────────────────────────────────
             if (loading) loading.style.display = 'none';
             if (content) content.style.display = 'flex';
@@ -680,6 +877,6 @@ const EstadisticasModule = (function () {
         initOnVisible();
     }
 
-    return { load };
+    return { load, showProdChart };
 })();
 </script>

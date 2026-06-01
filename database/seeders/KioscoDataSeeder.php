@@ -249,12 +249,17 @@ class KioscoDataSeeder extends Seeder
         $productModels = [];
         foreach ($productsData as $p) {
             $cat = $catModels[$p['category']];
+            $tipo = $p['tipo'];
+            $price = ($tipo === 'elaborado') ? 0 : $p['price'];
+            $sale_price = ($tipo === 'elaborado') ? $p['price'] : 0;
+            
             $productModels[$p['name']] = Product::create([
                 'category_id' => $cat->id,
                 'name'        => $p['name'],
                 'description' => $p['description'],
-                'tipo'        => $p['tipo'],
-                'price'       => $p['price'],
+                'tipo'        => $tipo,
+                'price'       => $price,
+                'sale_price'  => $sale_price,
                 'stock'       => $p['stock'],
                 'is_active'   => true,
             ]);
@@ -288,7 +293,8 @@ class KioscoDataSeeder extends Seeder
             
             // Actualizar stock y precio
             $prod->stock += $i['cant'];
-            $prod->price  = $i['precio'] * 1.30; // 30% margen de ganancia para la reventa
+            $prod->price  = $i['precio']; // Costo de compra
+            $prod->sale_price = $i['precio'] * 1.30; // Precio de venta (30% margen)
             $prod->save();
         }
 
@@ -319,7 +325,8 @@ class KioscoDataSeeder extends Seeder
 
             // Actualizar stock y precio
             $prod->stock += $i['cant'];
-            $prod->price  = $i['precio'] * 1.35; // 35% de ganancia en snacks/golosinas
+            $prod->price  = $i['precio']; // Costo de compra
+            $prod->sale_price = $i['precio'] * 1.35; // Precio de venta (35% margen)
             $prod->save();
         }
 

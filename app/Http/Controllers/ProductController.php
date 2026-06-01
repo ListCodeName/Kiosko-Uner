@@ -36,7 +36,7 @@ class ProductController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'tipo'        => 'required|in:reventa,insumo,elaborado',
-            'price'       => 'nullable|numeric|min:0',
+            'sale_price'  => 'nullable|numeric|min:0',
             'grupo'       => 'nullable|string',
         ]);
 
@@ -61,12 +61,14 @@ class ProductController extends Controller
             );
         }
 
-        // El precio solo se admite para elaborados; reventa e insumo arrancan en 0.
-        $validated['price']     = ($tipo === 'elaborado' && isset($validated['price']))
-                                    ? $validated['price']
+        // El precio de compra inicia en 0 para todos.
+        $validated['price']      = 0;
+        // El precio de venta solo se admite para reventa y elaborado.
+        $validated['sale_price'] = (($tipo === 'reventa' || $tipo === 'elaborado') && isset($validated['sale_price']))
+                                    ? $validated['sale_price']
                                     : 0;
-        $validated['stock']     = 0;
-        $validated['is_active'] = true;
+        $validated['stock']      = 0;
+        $validated['is_active']  = true;
         $validated['category_id'] = $category->id;
 
         $product = Product::create($validated);
@@ -86,7 +88,7 @@ class ProductController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'tipo'        => 'required|in:reventa,insumo,elaborado',
-            'price'       => 'nullable|numeric|min:0',
+            'sale_price'  => 'nullable|numeric|min:0',
             'grupo'       => 'nullable|string',
         ]);
 
@@ -98,23 +100,26 @@ class ProductController extends Controller
                 ['name' => 'Elaborados'],
                 ['icon' => '🍕', 'sort_order' => 99, 'is_produced' => true]
             );
-            // Actualizar precio solo si es elaborado y se envió un valor
-            if (isset($validated['price']) && $validated['price'] !== null) {
-                $product->price = $validated['price'];
-            }
+            $product->price = 0; // Elaborados no tienen precio de compra
         } elseif ($tipo === 'insumo') {
             $category = \App\Models\ProductCategory::firstOrCreate(
                 ['name' => 'Insumos Cocina'],
                 ['icon' => '🍳', 'sort_order' => 6, 'is_produced' => false]
             );
-            $product->price = 0;
+            $product->sale_price = 0; // Insumos no tienen precio de venta
         } else { // reventa
             $grupoName = $grupo ? trim($grupo) : 'Otros';
             $category = \App\Models\ProductCategory::firstOrCreate(
                 ['name' => $grupoName],
                 ['icon' => '📦', 'sort_order' => 10, 'is_produced' => false]
             );
-            $product->price = 0; // Se actualiza por compras
+        }
+
+        // Actualizar precio de venta si es aplicable
+        if ($tipo === 'reventa' || $tipo === 'elaborado') {
+            if (isset($validated['sale_price'])) {
+                $product->sale_price = $validated['sale_price'];
+            }
         }
 
         $product->update([
@@ -174,7 +179,7 @@ class ProductController extends Controller
 
         $product->stock += $request->unidades;
         if ($request->filled('precio')) {
-            $product->price = $request->precio;
+            $product->sale_price = $request->precio;
         }
         $product->save();
         \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Cargó ' . $request->unidades . ' unidades de elaborado para: ' . $product->name);
@@ -231,10 +236,10 @@ class ProductController extends Controller
 
         if ($q === '') {
             // Si la consulta q está vacía, no limitamos para permitir la inicialización completa del caché del frontend
-            $products = $query->get(['id', 'name', 'tipo', 'price', 'stock', 'description']);
+            $products = $query->get(['id', 'name', 'tipo', 'price', 'sale_price', 'stock', 'description']);
         } else {
             // Traemos los productos relevantes para filtrar de forma robusta e insensible a acentos en PHP (SQLite fix)
-            $products = $query->get(['id', 'name', 'tipo', 'price', 'stock', 'description']);
+            $products = $query->get(['id', 'name', 'tipo', 'price', 'sale_price', 'stock', 'description']);
             
             $normalizedQ = Str::lower(Str::ascii($q));
             $products = $products->filter(function ($product) use ($normalizedQ) {
@@ -282,9 +287,10 @@ class ProductController extends Controller
             );
         }
 
-        $validated['price']     = 0;
-        $validated['stock']     = 0;
-        $validated['is_active'] = true;
+        $validated['price']      = 0;
+        $validated['sale_price'] = 0;
+        $validated['stock']      = 0;
+        $validated['is_active']  = true;
         $validated['category_id'] = $category->id;
 
         $product = Product::create($validated);
@@ -298,6 +304,7 @@ class ProductController extends Controller
                 'name'        => $product->name,
                 'tipo'        => $product->tipo,
                 'price'       => 0,
+                'sale_price'  => 0,
                 'stock'       => 0,
                 'description' => $product->description,
             ],
@@ -320,7 +327,7 @@ class ProductController extends Controller
 
         $product->stock += $request->unidades;
         if ($request->filled('precio')) {
-            $product->price = $request->precio;
+            $product->sale_price = $request->precio;
         }
         $product->save();
         \App\Models\ActivityLog::log(\Illuminate\Support\Facades\Auth::id(), 'UPDATE', 'Productos', 'Cargó ' . $request->unidades . ' unidades de elaborado para: ' . $product->name . ' (API)');
@@ -352,5 +359,29 @@ class ProductController extends Controller
             'message'   => $request->sobrantes . ' sobrantes dados de baja.',
             'new_stock' => $product->stock,
         ]);
+    }
+
+    /**
+     * Actualiza específicamente el precio de venta (sale_price) desde el modal dedicado.
+     */
+    public function updateSalePrice(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'sale_price' => 'required|numeric|min:0',
+        ]);
+
+        $oldPrice = $product->sale_price;
+        $product->sale_price = $validated['sale_price'];
+        $product->save();
+
+        \App\Models\ActivityLog::log(
+            \Illuminate\Support\Facades\Auth::id(),
+            'UPDATE',
+            'Productos',
+            'Actualizó el precio de venta de: ' . $product->name . ' de $' . $oldPrice . ' a $' . $product->sale_price
+        );
+
+        return redirect()->route('panel')
+            ->with('success', 'Precio de venta de "' . $product->name . '" actualizado a $' . number_format($product->sale_price, 2, ',', '.') . '.');
     }
 }

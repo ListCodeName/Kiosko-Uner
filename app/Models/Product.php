@@ -12,13 +12,15 @@ class Product extends Model
         'description',
         'tipo',
         'price',
+        'sale_price',
         'stock',
         'is_active',
     ];
 
     protected $casts = [
-        'price'     => 'decimal:2',
-        'is_active' => 'boolean',
+        'price'      => 'decimal:2',
+        'sale_price' => 'decimal:2',
+        'is_active'  => 'boolean',
     ];
 
     /* ── Constantes de tipo ────────────────────────────────── */

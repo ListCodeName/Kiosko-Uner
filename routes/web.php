@@ -235,4 +235,5 @@ Route::middleware(['auth', 'role:alumno,superadmin'])->prefix('products')->name(
     Route::patch('/{product}/restore',            [ProductController::class, 'restore'])->name('restore');
     Route::post('/{product}/cargar-unidades',     [ProductController::class, 'cargarUnidades'])->name('cargarUnidades');
     Route::post('/{product}/baja-sobrantes',      [ProductController::class, 'bajaElaborados'])->name('bajaElaborados');
+    Route::post('/{product}/update-sale-price',   [ProductController::class, 'updateSalePrice'])->name('updateSalePrice');
 });

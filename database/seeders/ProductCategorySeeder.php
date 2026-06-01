@@ -59,9 +59,19 @@ class ProductCategorySeeder extends Seeder
         foreach ($products as $p) {
             $cat = ProductCategory::where('name', $p['category'])->first();
             if ($cat) {
+                $tipo = ($cat->name === 'Elaborados') ? 'elaborado' : 'reventa';
+                $price = ($tipo === 'elaborado') ? 0 : round($p['price'] * 0.7, 2); // costo estimado del 70%
+                $sale_price = $p['price'];
+
                 Product::updateOrCreate(
                     ['name' => $p['name'], 'category_id' => $cat->id],
-                    ['price' => $p['price'], 'stock' => $p['stock'], 'is_active' => true]
+                    [
+                        'tipo'        => $tipo,
+                        'price'       => $price,
+                        'sale_price'  => $sale_price,
+                        'stock'       => $p['stock'],
+                        'is_active'   => true
+                    ]
                 );
             }
         }
