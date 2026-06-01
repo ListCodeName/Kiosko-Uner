@@ -6,7 +6,10 @@
         <span class="summary-badge" id="comprasTotalCount">0 compras</span>
         <span class="summary-badge highlight" id="comprasTotalMonto">$0,00 total</span>
     </div>
-    <button class="btn btn-gen" id="btnNewCompra">＋ Nueva Compra</button>
+    <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-secondary" id="btnSyncCompra" style="background:rgba(108,99,255,.1);color:#8b85ff;border:1px solid rgba(108,99,255,.2);padding:10px 18px;font-size:0.88rem;border-radius:10px;cursor:pointer;font-weight:600;transition:all .2s">🔄 Sincronizar</button>
+        <button class="btn btn-gen" id="btnNewCompra">＋ Nueva Compra</button>
+    </div>
 </div>
 
 {{-- Grid de tarjetas --}}
@@ -165,6 +168,39 @@
     </div>
 </div>
 
+{{-- ══════════════════ MODAL: SINCRONIZAR ══════════════════ --}}
+<div class="modal-overlay" id="compraSyncModal">
+    <div class="modal" style="max-width: min(500px, 90dvw);">
+        <div class="modal-header">
+            <h3 class="modal-title">🔄 Sincronizar Compra con Catálogo</h3>
+            <button class="modal-close" id="compraSyncClose">✕</button>
+        </div>
+        <form class="modal-body" id="compraSyncForm">
+            <div class="form-group">
+                <label class="form-label">Seleccione la compra a sincronizar <span style="color:#ef4444">*</span></label>
+                <select class="form-input" id="sync-compra-select" required style="width:100%;background:#0f1117;color:#e8eaf0;border:1px solid rgba(255,255,255,.12);padding:.6rem .75rem;border-radius:8px">
+                    <option value="">Cargando compras...</option>
+                </select>
+            </div>
+            
+            <div style="color:rgba(108,99,255,.85);font-size:.82rem;background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.2);border-radius:8px;padding:.75rem;margin-top:12px;margin-bottom:12px;line-height:1.4">
+                ℹ️ <strong>¿Qué hace la sincronización?</strong><br>
+                Revisará todos los productos incluidos en la compra elegida:
+                <ul style="margin:4px 0 0 16px;padding:0">
+                    <li>Si el producto ya existe en el catálogo (coincidencia de nombre al 100%), se sumará la cantidad comprada a su stock actual y se actualizará su precio de compra.</li>
+                    <li>Si no existe en el catálogo, se creará un producto nuevo con todos sus datos y stock inicial correspondientes.</li>
+                </ul>
+                <div style="margin-top:6px;color:#fbbf24;font-weight:600">⚠️ Nota de seguridad: Una vez sincronizada, la compra quedará protegida y no se podrá volver a procesar para evitar duplicados.</div>
+            </div>
+
+            <div class="modal-footer" style="margin-top:16px">
+                <button type="button" class="btn-cancel" id="compraSyncCancel">Cancelar</button>
+                <button type="submit" class="btn-submit" id="compraSyncSubmitBtn">Sincronizar ahora</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 (function () {
     'use strict';
@@ -268,9 +304,13 @@
         grid.innerHTML = data.map(c => `
             <div class="compra-card" data-id="${c.id}">
                 <div class="compra-card-header">
-                    <div class="compra-card-date">
+                    <div class="compra-card-date" style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap">
                         <span class="compra-date-icon">📅</span>
                         <span>${c.fecha}</span>
+                        ${c.sincronizado 
+                            ? `<span class="compra-item-tipo" style="background:rgba(34,211,160,.12);color:#22d3a0;font-size:0.65rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:8px">🔄 Sincronizada</span>`
+                            : `<span class="compra-item-tipo" style="background:rgba(251,191,36,.12);color:#fbbf24;font-size:0.65rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:8px">⚠️ Sin Sincronizar</span>`
+                        }
                     </div>
                     <button class="action-btn danger compra-del-btn" title="Eliminar compra" onclick="COMPRA.del(${c.id})">🗑️</button>
                 </div>
@@ -689,6 +729,8 @@
             renderCards(comprasData);
             // Refrescar cache de productos (stock actualizado)
             productsCache = null;
+            // Refrescar la página de forma automática para actualizar stock en todos los módulos
+            setTimeout(() => window.location.reload(), 1200);
         } catch (err) {
             toast(err.message || Object.values(err.errors || {}).flat().join(', ') || 'Error al registrar', 'error');
         }
@@ -725,7 +767,91 @@
             renderCards(comprasData);
             // Refrescar cache de productos (stock revertido)
             productsCache = null;
+            // Refrescar la página de forma automática para actualizar stock en todos los módulos
+            setTimeout(() => window.location.reload(), 1200);
         } catch (err) { toast(err.message || 'Error al eliminar', 'error'); }
+    });
+
+    /* ══════════════════════════════════════════════
+       SINCRONIZAR
+    ══════════════════════════════════════════════ */
+    const syncModal      = document.getElementById('compraSyncModal');
+    const syncSelect     = document.getElementById('sync-compra-select');
+    const syncForm       = document.getElementById('compraSyncForm');
+    const syncSubmitBtn  = document.getElementById('compraSyncSubmitBtn');
+
+    document.getElementById('btnSyncCompra')?.addEventListener('click', () => {
+        // Filtrar solo las compras que no han sido sincronizadas
+        const unsynced = comprasData.filter(c => !c.sincronizado);
+        
+        if (syncSelect) {
+            syncSelect.innerHTML = '';
+            if (unsynced.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'No hay compras históricas sin sincronizar';
+                syncSelect.appendChild(opt);
+                if (syncSubmitBtn) syncSubmitBtn.disabled = true;
+            } else {
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = '-- Seleccione una compra --';
+                syncSelect.appendChild(defaultOpt);
+
+                unsynced.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    const itemsText = c.items.map(i => `${i.producto_nombre} (x${i.cantidad})`).join(', ');
+                    opt.textContent = `Compra #${c.id} - ${c.fecha} (${formatMoney(c.total)}) [${itemsText.substring(0, 50)}${itemsText.length > 50 ? '...' : ''}]`;
+                    syncSelect.appendChild(opt);
+                });
+                if (syncSubmitBtn) syncSubmitBtn.disabled = false;
+            }
+        }
+        
+        window.openModal('compraSyncModal');
+    });
+
+    const closeSyncModal = () => window.closeModal('compraSyncModal');
+
+    document.getElementById('compraSyncClose')?.addEventListener('click', closeSyncModal);
+    document.getElementById('compraSyncCancel')?.addEventListener('click', closeSyncModal);
+
+    syncForm?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const compraId = syncSelect.value;
+        if (!compraId) {
+            toast('Por favor, seleccione una compra válida', 'error');
+            return;
+        }
+
+        if (syncSubmitBtn) {
+            syncSubmitBtn.disabled = true;
+            syncSubmitBtn.textContent = 'Sincronizando...';
+        }
+
+        try {
+            const data = await api('/api/compras/sincronizar', 'POST', { compra_id: parseInt(compraId, 10) });
+            toast(data.message);
+            closeSyncModal();
+            
+            // Actualizar la compra en comprasData
+            const updatedCompra = data.compra;
+            comprasData = comprasData.map(c => c.id === updatedCompra.id ? updatedCompra : c);
+            renderCards(comprasData);
+            
+            // Forzar recarga del catálogo de productos y autocompletado
+            productsCache = null;
+            // Refrescar la página de forma automática para actualizar stock en todos los módulos
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+            toast(err.message || 'Error al sincronizar la compra', 'error');
+        } finally {
+            if (syncSubmitBtn) {
+                syncSubmitBtn.disabled = false;
+                syncSubmitBtn.textContent = 'Sincronizar ahora';
+            }
+        }
     });
 
 })();

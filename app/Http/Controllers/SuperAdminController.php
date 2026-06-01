@@ -357,6 +357,7 @@ class SuperAdminController extends Controller
                     'fecha_raw'     => $c->fecha->format('Y-m-d'),
                     'total'         => (float) $c->total,
                     'observaciones' => $c->observaciones,
+                    'sincronizado'  => (bool) $c->sincronizado,
                     'items'         => $c->items->map(fn($i) => [
                         'id'              => $i->id,
                         'product_id'      => $i->product_id,
@@ -377,9 +378,9 @@ class SuperAdminController extends Controller
 
     /**
      * Store a new compra con su lógica de stock diferencial por tipo:
-     *   - reventa   → suma cantidad al stock y actualiza precio del producto.
-     *   - insumo    → solo registra el ítem, no toca inventario.
-     *   - elaborado → no aplica; los elaborados se cargan manualmente.
+     *   - Compara al 100% por nombre: si coincide, actualiza cantidad y precio de costo.
+     *   - Si no coincide: crea un nuevo producto en el catálogo.
+     *   - Se marca como sincronizado directamente.
      */
     public function storeCompra(Request $request)
     {
@@ -401,31 +402,79 @@ class SuperAdminController extends Controller
                 fn($i) => $i['cantidad'] * $i['precio_unitario']
             );
 
+            // Se registra directamente como sincronizado ya que impacta de inmediato en stock y catálogo
             $compra = Compra::create([
                 'fecha'         => $validated['fecha'],
                 'total'         => $total,
                 'observaciones' => $validated['observaciones'] ?? null,
+                'sincronizado'  => true,
             ]);
 
             foreach ($validated['items'] as $item) {
+                $nombre = trim($item['producto_nombre']);
+                
+                // Intentar buscar primero por product_id y luego por coincidencia de nombre exacta al 100%
+                $product = null;
+                if (!empty($item['product_id'])) {
+                    $product = Product::find($item['product_id']);
+                }
+                if (!$product) {
+                    $product = Product::where('name', $nombre)->first();
+                }
+
+                if ($product) {
+                    // Si existe el producto, se actualizan la cantidad (adición al actual) y el precio de costo (sobreescritura)
+                    $product->stock += (float) $item['cantidad'];
+                    $product->price  = (float) $item['precio_unitario'];
+                    $product->save();
+                } else {
+                    // Si no existe, se genera un nuevo producto con todos sus datos
+                    $tipo = $item['tipo_producto'] ?? 'reventa';
+                    if ($tipo === 'elaborado') {
+                        $category = \App\Models\ProductCategory::firstOrCreate(
+                            ['name' => 'Elaborados'],
+                            ['icon' => '🍕', 'sort_order' => 99, 'is_produced' => true]
+                        );
+                    } elseif ($tipo === 'insumo') {
+                        $category = \App\Models\ProductCategory::firstOrCreate(
+                            ['name' => 'Insumos Cocina'],
+                            ['icon' => '🍳', 'sort_order' => 6, 'is_produced' => false]
+                        );
+                    } else { // reventa
+                        $category = \App\Models\ProductCategory::firstOrCreate(
+                            ['name' => 'Otros'],
+                            ['icon' => '📦', 'sort_order' => 10, 'is_produced' => false]
+                        );
+                    }
+
+                    $product = Product::create([
+                        'category_id' => $category->id,
+                        'name'        => $nombre,
+                        'tipo'        => $tipo,
+                        'price'       => (float) $item['precio_unitario'],
+                        'sale_price'  => 0.00, // Los nuevos productos inician con precio de venta en 0
+                        'stock'       => (float) $item['cantidad'],
+                        'is_active'   => true,
+                        'description' => 'Creado automáticamente desde compra #' . $compra->id,
+                    ]);
+
+                    ActivityLog::log(
+                        Auth::id(),
+                        'INSERT',
+                        'Productos',
+                        "Creó automáticamente el producto: {$product->name} (Tipo: {$product->tipo}) al registrar la compra #{$compra->id}"
+                    );
+                }
+
+                // Registrar ítem de la compra vinculándolo al producto correspondiente
                 CompraItem::create([
                     'compra_id'       => $compra->id,
-                    'product_id'      => $item['product_id'] ?? null,
-                    'producto_nombre' => $item['producto_nombre'],
+                    'product_id'      => $product->id,
+                    'producto_nombre' => $nombre,
                     'tipo_producto'   => $item['tipo_producto'],
                     'cantidad'        => $item['cantidad'],
                     'precio_unitario' => $item['precio_unitario'],
                 ]);
-
-                // Solo reventa actualiza stock y precio en el producto
-                if ($item['tipo_producto'] === 'reventa' && !empty($item['product_id'])) {
-                    $product = Product::find($item['product_id']);
-                    if ($product) {
-                        $product->stock += (int) $item['cantidad'];
-                        $product->price  = $item['precio_unitario'];
-                        $product->save();
-                    }
-                }
             }
 
             // Crear automáticamente el Egreso contable
@@ -460,6 +509,7 @@ class SuperAdminController extends Controller
                     'fecha_raw'     => $compra->fecha->format('Y-m-d'),
                     'total'         => (float) $compra->total,
                     'observaciones' => $compra->observaciones,
+                    'sincronizado'  => (bool) $compra->sincronizado,
                     'items'         => $compra->items->map(fn($i) => [
                         'id'              => $i->id,
                         'product_id'      => $i->product_id,
@@ -477,6 +527,133 @@ class SuperAdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al registrar la compra: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Sincroniza una compra histórica con la tabla de productos de forma segura.
+     */
+    public function sincronizarCompra(Request $request)
+    {
+        $validated = $request->validate([
+            'compra_id' => 'required|integer|exists:compras,id',
+        ]);
+
+        $compra = Compra::with('items')->findOrFail($validated['compra_id']);
+
+        if ($compra->sincronizado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta compra ya ha sido sincronizada anteriormente.',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($compra->items as $item) {
+                $nombre = trim($item->producto_nombre);
+                
+                // Intentar buscar primero por product_id y luego por coincidencia de nombre exacta al 100%
+                $product = null;
+                if (!empty($item->product_id)) {
+                    $product = Product::find($item->product_id);
+                }
+                if (!$product) {
+                    $product = Product::where('name', $nombre)->first();
+                }
+
+                if ($product) {
+                    // Si ya existía el producto, actualizamos su stock (adición al actual) y precio de compra (sobreescritura)
+                    $product->stock += (float) $item->cantidad;
+                    $product->price  = (float) $item->precio_unitario;
+                    $product->save();
+                } else {
+                    // Si no existía, se crea un producto nuevo
+                    $tipo = $item->tipo_producto ?? 'reventa';
+                    if ($tipo === 'elaborado') {
+                        $category = \App\Models\ProductCategory::firstOrCreate(
+                            ['name' => 'Elaborados'],
+                            ['icon' => '🍕', 'sort_order' => 99, 'is_produced' => true]
+                        );
+                    } elseif ($tipo === 'insumo') {
+                        $category = \App\Models\ProductCategory::firstOrCreate(
+                            ['name' => 'Insumos Cocina'],
+                            ['icon' => '🍳', 'sort_order' => 6, 'is_produced' => false]
+                        );
+                    } else { // reventa
+                        $category = \App\Models\ProductCategory::firstOrCreate(
+                            ['name' => 'Otros'],
+                            ['icon' => '📦', 'sort_order' => 10, 'is_produced' => false]
+                        );
+                    }
+
+                    $product = Product::create([
+                        'category_id' => $category->id,
+                        'name'        => $nombre,
+                        'tipo'        => $tipo,
+                        'price'       => (float) $item->precio_unitario,
+                        'sale_price'  => 0.00,
+                        'stock'       => (float) $item->cantidad,
+                        'is_active'   => true,
+                        'description' => 'Creado automáticamente al sincronizar compra #' . $compra->id,
+                    ]);
+
+                    ActivityLog::log(
+                        Auth::id(),
+                        'INSERT',
+                        'Productos',
+                        "Creó automáticamente el producto: {$product->name} (Tipo: {$product->tipo}) al sincronizar la compra #{$compra->id}"
+                    );
+                }
+
+                // Vinculamos el item de compra con el product_id
+                $item->product_id = $product->id;
+                $item->save();
+            }
+
+            // Marcamos la compra como sincronizada
+            $compra->sincronizado = true;
+            $compra->save();
+
+            // Registrar actividad
+            ActivityLog::log(
+                Auth::id(),
+                'UPDATE',
+                'Compras',
+                "Sincronizó manualmente la compra #{$compra->id} de fecha " . $compra->fecha->format('d/m/Y')
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Compra sincronizada exitosamente y productos actualizados.',
+                'compra'  => [
+                    'id'            => $compra->id,
+                    'fecha'         => $compra->fecha->format('d/m/Y'),
+                    'fecha_raw'     => $compra->fecha->format('Y-m-d'),
+                    'total'         => (float) $compra->total,
+                    'observaciones' => $compra->observaciones,
+                    'sincronizado'  => (bool) $compra->sincronizado,
+                    'items'         => $compra->items->map(fn($i) => [
+                        'id'              => $i->id,
+                        'product_id'      => $i->product_id,
+                        'producto_nombre' => $i->producto_nombre,
+                        'tipo_producto'   => $i->tipo_producto,
+                        'cantidad'        => (float) $i->cantidad,
+                        'precio_unitario' => (float) $i->precio_unitario,
+                        'subtotal'        => round((float)$i->cantidad * (float)$i->precio_unitario, 2),
+                    ]),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al sincronizar la compra: ' . $e->getMessage(),
             ], 500);
         }
     }

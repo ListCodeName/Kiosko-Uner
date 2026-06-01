@@ -158,9 +158,10 @@ Route::middleware(['auth', 'role:alumno,superadmin'])->prefix('superadmin')->gro
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:alumno,superadmin'])->prefix('api')->group(function () {
-    Route::get('/compras',         [SuperAdminController::class, 'getCompras']);
-    Route::post('/compras',        [SuperAdminController::class, 'storeCompra']);
-    Route::delete('/compras/{id}', [SuperAdminController::class, 'destroyCompra']);
+    Route::get('/compras',              [SuperAdminController::class, 'getCompras']);
+    Route::post('/compras',             [SuperAdminController::class, 'storeCompra']);
+    Route::post('/compras/sincronizar', [SuperAdminController::class, 'sincronizarCompra']);
+    Route::delete('/compras/{id}',      [SuperAdminController::class, 'destroyCompra']);
 });
 
 /*

@@ -15,11 +15,13 @@ class Compra extends Model
         'fecha',
         'total',
         'observaciones',
+        'sincronizado',
     ];
 
     protected $casts = [
-        'fecha' => 'date',
-        'total' => 'decimal:2',
+        'fecha'        => 'date',
+        'total'        => 'decimal:2',
+        'sincronizado' => 'boolean',
     ];
 
     public function items()
