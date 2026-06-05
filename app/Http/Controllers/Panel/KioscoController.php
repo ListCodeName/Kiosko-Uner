@@ -23,8 +23,11 @@ class KioscoController extends Controller
     public function categories()
     {
         $categories = ProductCategory::ordered()
+            ->whereHas('products', function ($q) {
+                $q->active()->whereIn('tipo', [Product::TIPO_REVENTA, Product::TIPO_ELABORADO]);
+            })
             ->with(['products' => function ($q) {
-                $q->active()->orderBy('name');
+                $q->active()->whereIn('tipo', [Product::TIPO_REVENTA, Product::TIPO_ELABORADO])->orderBy('name');
             }])
             ->get()
             ->map(function ($cat) {
@@ -75,9 +78,9 @@ class KioscoController extends Controller
             foreach ($request->items as $item) {
                 $product = Product::lockForUpdate()->findOrFail($item['product_id']);
 
-                if (!$product->is_active) {
+                if (!$product->is_active || $product->tipo === Product::TIPO_INSUMO) {
                     return response()->json([
-                        'message' => "El producto «{$product->name}» ya no está disponible.",
+                        'message' => "El producto «{$product->name}» no está disponible para la venta.",
                     ], 422);
                 }
 
